@@ -162,6 +162,12 @@ class PlayerProgression {
         return this.chronoShards;
     }
 
+    updateStatistics(gameResults) {
+        // Update statistics with game results
+        this.statistics.recordGameSession(gameResults);
+        this.saveProgression();
+    }
+
     spendChronoShards(amount, item = 'unknown') {
         if (this.chronoShards >= amount) {
             this.chronoShards -= amount;

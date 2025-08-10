@@ -208,6 +208,14 @@ class Player {
                 slowFactor = window.abilityManager.getStasisSlowFactor(cell, this.id);
             }
             
+            // Apply event-based speed modifications
+            if (this.frozenSpeedMultiplier) {
+                slowFactor *= this.frozenSpeedMultiplier;
+            }
+            if (this.frenzySpeedBoost) {
+                slowFactor *= this.frenzySpeedBoost;
+            }
+            
             // Enhanced movement with momentum and distance-based acceleration
             const distanceFactor = Math.min(distance / 100, 1.5); // Accelerate when far from target
             const responsiveSpeed = speed * slowFactor * distanceFactor;
@@ -611,8 +619,8 @@ class AIPlayer extends Player {
         if (this.target) {
             // Add human-like imperfection and strategic decisions
             this.executeHumanLikeMovement(deltaTime, threats, prey);
-                 }
-     }
+        }
+    }
 
     executeHumanLikeMovement(deltaTime, threats, prey) {
         // Human-like movement with occasional hesitation and strategic decisions
@@ -824,7 +832,8 @@ class AIPlayer extends Player {
 
         // Strategic hunting based on personality and situation
         if (prey.length > 0) {
-            const shouldHunt = this.getTotalMass() > 80 * this.aggressiveness && 
+            const baseAggressiveness = this.aggressiveness + (this.frenzyAggressionBoost || 0);
+            const shouldHunt = this.getTotalMass() > 80 * baseAggressiveness && 
                              (this.riskTaking > 0.4 || this.getTotalMass() > prey[0].player.getTotalMass() * 1.5);
             
             if (shouldHunt) {
@@ -1178,6 +1187,12 @@ class GameEngine {
         this.setupCanvas();
         this.setupInputHandlers();
         this.initializeWorld();
+        
+        // Dynamic events system
+        this.lastEventTime = 0;
+        this.eventCooldown = 0;
+        this.activeEvents = [];
+        this.chronoMatterSpawnRate = 1; // Base spawn rate for events
     }
 
     setupCanvas() {
@@ -1319,6 +1334,7 @@ class GameEngine {
         this.isPaused = false;
         this.gameTime = 0;
         this.lastFrameTime = performance.now();
+        this.gameStartTime = Date.now(); // Initialize for dynamic events
         
         this.gameLoop();
         
@@ -1416,6 +1432,9 @@ class GameEngine {
         if (window.particleSystem) {
             window.particleSystem.update(deltaTime);
         }
+        
+        // Handle dynamic gameplay events
+        this.handleDynamicEvents(deltaTime);
     }
 
     updateWorldEntities(deltaTime) {
@@ -1795,6 +1814,468 @@ class GameEngine {
         this.canvas.classList.add('hidden');
         document.getElementById('gameHUD').classList.add('hidden');
         document.getElementById('mainMenu').classList.remove('hidden');
+    }
+
+    handleDynamicEvents(deltaTime) {
+        const now = Date.now();
+        
+        // Update active events
+        this.activeEvents = this.activeEvents.filter(event => {
+            event.duration -= deltaTime;
+            if (event.duration <= 0) {
+                this.endEvent(event);
+                return false;
+            }
+            this.updateEvent(event, deltaTime);
+            return true;
+        });
+        
+        // Check if we can trigger a new event
+        if (now - this.lastEventTime > this.eventCooldown && this.activeEvents.length < 2) {
+            this.tryTriggerRandomEvent();
+        }
+    }
+
+    tryTriggerRandomEvent() {
+        const now = Date.now();
+        const gameTime = now - this.gameStartTime;
+        
+        // Higher chance of events as game progresses
+        const eventChance = Math.min(0.3, gameTime / 300000); // Max 30% chance after 5 minutes
+        
+        if (Math.random() < eventChance) {
+            this.triggerRandomEvent();
+            this.lastEventTime = now;
+            this.eventCooldown = MathUtils.random(15000, 45000); // 15-45 seconds between events
+        }
+    }
+
+    triggerRandomEvent() {
+        const events = [
+            'chrono_storm',
+            'mass_surge',
+            'gravity_shift',
+            'temporal_freeze',
+            'matter_rain',
+            'ai_frenzy',
+            'speed_boost',
+            'shrinking_arena',
+            'chaos_split',
+            'magnetic_field',
+            'time_dilation',
+            'mass_redistribution',
+            'teleport_chaos',
+            'inverted_controls'
+        ];
+        
+        const randomEvent = events[Math.floor(Math.random() * events.length)];
+        this.startEvent(randomEvent);
+    }
+
+    startEvent(eventType) {
+        const event = { type: eventType, duration: 0, intensity: 1 };
+        
+        switch (eventType) {
+            case 'chrono_storm':
+                event.duration = 10000; // 10 seconds
+                event.intensity = MathUtils.random(0.5, 1.5);
+                this.createChronoStorm(event);
+                break;
+                
+            case 'mass_surge':
+                event.duration = 8000; // 8 seconds
+                this.createMassSurge(event);
+                break;
+                
+            case 'gravity_shift':
+                event.duration = 12000; // 12 seconds
+                event.centerPoint = new Vector2(
+                    MathUtils.random(GameConstants.ARENA_WIDTH * 0.2, GameConstants.ARENA_WIDTH * 0.8),
+                    MathUtils.random(GameConstants.ARENA_HEIGHT * 0.2, GameConstants.ARENA_HEIGHT * 0.8)
+                );
+                this.createGravityShift(event);
+                break;
+                
+            case 'temporal_freeze':
+                event.duration = 5000; // 5 seconds
+                event.affectedPlayers = this.aiPlayers.filter(() => Math.random() < 0.6);
+                this.createTemporalFreeze(event);
+                break;
+                
+            case 'matter_rain':
+                event.duration = 15000; // 15 seconds
+                event.spawnRate = MathUtils.random(2, 5);
+                this.createMatterRain(event);
+                break;
+                
+            case 'ai_frenzy':
+                event.duration = 20000; // 20 seconds
+                this.createAIFrenzy(event);
+                break;
+                
+            case 'speed_boost':
+                event.duration = 12000; // 12 seconds
+                event.speedMultiplier = MathUtils.random(1.5, 2.5);
+                this.createSpeedBoost(event);
+                break;
+                
+            case 'shrinking_arena':
+                event.duration = 30000; // 30 seconds
+                event.shrinkRate = MathUtils.random(0.8, 0.95);
+                this.createShrinkingArena(event);
+                break;
+                
+            case 'chaos_split':
+                event.duration = 8000; // 8 seconds
+                this.createChaosSplit(event);
+                break;
+                
+            case 'magnetic_field':
+                event.duration = 15000; // 15 seconds
+                event.magneticCenter = new Vector2(
+                    MathUtils.random(GameConstants.ARENA_WIDTH * 0.3, GameConstants.ARENA_WIDTH * 0.7),
+                    MathUtils.random(GameConstants.ARENA_HEIGHT * 0.3, GameConstants.ARENA_HEIGHT * 0.7)
+                );
+                event.magneticStrength = MathUtils.random(30, 100);
+                this.createMagneticField(event);
+                break;
+                
+            case 'time_dilation':
+                event.duration = 12000; // 12 seconds
+                this.createTimeDilation(event);
+                break;
+                
+            case 'mass_redistribution':
+                event.duration = 1000; // Instant effect
+                this.createMassRedistribution(event);
+                break;
+                
+            case 'teleport_chaos':
+                event.duration = 1000; // Instant effect
+                this.createTeleportChaos(event);
+                break;
+                
+            case 'inverted_controls':
+                event.duration = 10000; // 10 seconds
+                this.createInvertedControls(event);
+                break;
+        }
+        
+        this.activeEvents.push(event);
+        this.announceEvent(eventType);
+    }
+
+    createChronoStorm(event) {
+        // Spawn multiple temporal rifts randomly
+        for (let i = 0; i < 5; i++) {
+            const position = new Vector2(
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING),
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING)
+            );
+            this.temporalRifts.push(new TemporalRift(position.x, position.y, MathUtils.random(30, 60)));
+        }
+        
+        // Create visual storm effect
+        if (window.particleSystem) {
+            const center = new Vector2(GameConstants.ARENA_WIDTH / 2, GameConstants.ARENA_HEIGHT / 2);
+            window.particleSystem.createTimeDistortion(center, 'storm', 100);
+        }
+    }
+
+    createMassSurge(event) {
+        // All chrono matter gives 2x mass temporarily
+        this.chronoMatter.forEach(matter => {
+            matter.massMultiplier = 2;
+        });
+        event.restoreMass = true;
+    }
+
+    createGravityShift(event) {
+        // Apply gravitational pull towards a point
+        event.gravityStrength = MathUtils.random(50, 150);
+    }
+
+    createTemporalFreeze(event) {
+        // Slow down specific AI players
+        event.affectedPlayers.forEach(ai => {
+            ai.frozenSpeedMultiplier = 0.2;
+        });
+    }
+
+    createMatterRain(event) {
+        // Increase chrono matter spawn rate
+        event.originalSpawnRate = this.chronoMatterSpawnRate;
+        this.chronoMatterSpawnRate *= event.spawnRate;
+    }
+
+    createAIFrenzy(event) {
+        // Make all AI more aggressive and faster
+        this.aiPlayers.forEach(ai => {
+            ai.frenzySpeedBoost = 1.8;
+            ai.frenzyAggressionBoost = 0.3;
+            ai.decisionInterval *= 0.5; // Make decisions faster
+        });
+    }
+
+    createSpeedBoost(event) {
+        // Global speed boost for all players
+        event.originalFriction = GameConstants.FRICTION;
+        GameConstants.FRICTION *= 0.7; // Less friction = more speed
+    }
+
+    createShrinkingArena(event) {
+        // Gradually shrink the safe zone
+        event.originalWidth = GameConstants.ARENA_WIDTH;
+        event.originalHeight = GameConstants.ARENA_HEIGHT;
+        event.targetWidth = GameConstants.ARENA_WIDTH * 0.6;
+        event.targetHeight = GameConstants.ARENA_HEIGHT * 0.6;
+    }
+
+    createChaosSplit(event) {
+        // Create multiple temporal rifts randomly
+        for (let i = 0; i < 5; i++) {
+            const position = new Vector2(
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING),
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING)
+            );
+            this.temporalRifts.push(new TemporalRift(position.x, position.y, MathUtils.random(30, 60)));
+        }
+        
+        // Create visual chaos effect
+        if (window.particleSystem) {
+            const center = new Vector2(GameConstants.ARENA_WIDTH / 2, GameConstants.ARENA_HEIGHT / 2);
+            window.particleSystem.createTimeDistortion(center, 'chaos', 100);
+        }
+    }
+
+    createMagneticField(event) {
+        // Create a magnetic field effect
+        if (window.particleSystem) {
+            const center = event.magneticCenter;
+            window.particleSystem.createMagneticField(center, 100);
+        }
+    }
+
+    createTimeDilation(event) {
+        // Slow down time for all cells
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                cell.velocity = Vector2.multiply(cell.velocity, 0.5);
+            });
+        });
+    }
+
+    createMassRedistribution(event) {
+        // Redistribute mass randomly
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            const newMass = MathUtils.random(10, 50);
+            player.consumeMassForAbility(newMass);
+        });
+    }
+
+    createTeleportChaos(event) {
+        // Teleport all AI players to random positions
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                cell.position = new Vector2(
+                    MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING),
+                    MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING)
+                );
+            });
+        });
+    }
+
+    createInvertedControls(event) {
+        // Invert controls for all AI players
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.frozenSpeedMultiplier = 0.2;
+            player.frenzySpeedBoost = 1.8;
+            player.frenzyAggressionBoost = 0.3;
+            player.decisionInterval *= 0.5; // Make decisions faster
+        });
+    }
+
+    updateEvent(event, deltaTime) {
+        switch (event.type) {
+            case 'gravity_shift':
+                this.updateGravityShift(event, deltaTime);
+                break;
+            case 'shrinking_arena':
+                this.updateShrinkingArena(event, deltaTime);
+                break;
+            case 'magnetic_field':
+                this.updateMagneticField(event, deltaTime);
+                break;
+            case 'time_dilation':
+                this.updateTimeDilation(event, deltaTime);
+                break;
+        }
+    }
+
+    updateGravityShift(event, deltaTime) {
+        // Apply gravity to all cells
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const direction = Vector2.subtract(event.centerPoint, cell.position);
+                const distance = Vector2.magnitude(direction);
+                if (distance > 10) {
+                    const force = event.gravityStrength / (distance * distance) * cell.mass;
+                    const acceleration = Vector2.multiply(Vector2.normalize(direction), force);
+                    cell.velocity = Vector2.add(cell.velocity, Vector2.multiply(acceleration, deltaTime / 1000));
+                }
+            });
+        });
+    }
+
+    updateShrinkingArena(event, deltaTime) {
+        const progress = 1 - (event.duration / 30000);
+        const currentWidth = MathUtils.lerp(event.originalWidth, event.targetWidth, progress);
+        const currentHeight = MathUtils.lerp(event.originalHeight, event.targetHeight, progress);
+        
+        // Damage players outside the shrinking zone
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const centerX = GameConstants.ARENA_WIDTH / 2;
+                const centerY = GameConstants.ARENA_HEIGHT / 2;
+                const maxDistX = currentWidth / 2;
+                const maxDistY = currentHeight / 2;
+                
+                if (Math.abs(cell.position.x - centerX) > maxDistX || 
+                    Math.abs(cell.position.y - centerY) > maxDistY) {
+                    // Damage cell outside safe zone
+                    cell.mass *= 0.995; // Gradual mass loss
+                    if (cell.mass < 10) {
+                        cell.isAlive = false;
+                    }
+                }
+            });
+        });
+    }
+
+    updateMagneticField(event, deltaTime) {
+        // Apply magnetic force to all cells
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const direction = Vector2.subtract(event.magneticCenter, cell.position);
+                const distance = Vector2.magnitude(direction);
+                if (distance > 10) {
+                    const force = event.magneticStrength / (distance * distance) * cell.mass;
+                    const acceleration = Vector2.multiply(Vector2.normalize(direction), force);
+                    cell.velocity = Vector2.add(cell.velocity, Vector2.multiply(acceleration, deltaTime / 1000));
+                }
+            });
+        });
+    }
+
+    updateTimeDilation(event, deltaTime) {
+        // Slow down time for all cells
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                cell.velocity = Vector2.multiply(cell.velocity, 0.5);
+            });
+        });
+    }
+
+    endEvent(event) {
+        switch (event.type) {
+            case 'mass_surge':
+                if (event.restoreMass) {
+                    this.chronoMatter.forEach(matter => {
+                        matter.massMultiplier = 1;
+                    });
+                }
+                break;
+                
+            case 'temporal_freeze':
+                event.affectedPlayers.forEach(ai => {
+                    delete ai.frozenSpeedMultiplier;
+                });
+                break;
+                
+            case 'matter_rain':
+                this.chronoMatterSpawnRate = event.originalSpawnRate;
+                break;
+                
+            case 'ai_frenzy':
+                this.aiPlayers.forEach(ai => {
+                    delete ai.frenzySpeedBoost;
+                    delete ai.frenzyAggressionBoost;
+                    ai.decisionInterval = MathUtils.random(300, 800);
+                });
+                break;
+                
+            case 'speed_boost':
+                GameConstants.FRICTION = event.originalFriction;
+                break;
+                
+            case 'inverted_controls':
+            case 'chaos_split':
+                // Reset any temporary AI modifications
+                this.aiPlayers.forEach(ai => {
+                    delete ai.frozenSpeedMultiplier;
+                    delete ai.frenzySpeedBoost;
+                    delete ai.frenzyAggressionBoost;
+                    ai.decisionInterval = MathUtils.random(300, 800);
+                });
+                break;
+        }
+    }
+
+    announceEvent(eventType) {
+        const eventNames = {
+            'chrono_storm': 'CHRONO STORM DETECTED!',
+            'mass_surge': 'MASS SURGE ACTIVE!',
+            'gravity_shift': 'GRAVITY ANOMALY!',
+            'temporal_freeze': 'TEMPORAL DISRUPTION!',
+            'matter_rain': 'CHRONO-MATTER RAIN!',
+            'ai_frenzy': 'AI FRENZY MODE!',
+            'speed_boost': 'VELOCITY ENHANCEMENT!',
+            'shrinking_arena': 'ARENA COMPRESSION!',
+            'chaos_split': 'CHAOS RIFTS OPENING!',
+            'magnetic_field': 'MAGNETIC ANOMALY!',
+            'time_dilation': 'TIME DILATION FIELD!',
+            'mass_redistribution': 'MASS FLUX EVENT!',
+            'teleport_chaos': 'SPATIAL DISRUPTION!',
+            'inverted_controls': 'NEURAL INTERFERENCE!'
+        };
+        
+        const eventDescriptions = {
+            'chrono_storm': 'Multiple temporal rifts have appeared!',
+            'mass_surge': 'Chrono-matter provides double mass!',
+            'gravity_shift': 'Gravitational anomaly detected!',
+            'temporal_freeze': 'Some players are slowed by time!',
+            'matter_rain': 'Increased chrono-matter spawning!',
+            'ai_frenzy': 'AI players are in aggressive mode!',
+            'speed_boost': 'All players move faster!',
+            'shrinking_arena': 'The arena is compressing!',
+            'chaos_split': 'Reality is fracturing into chaos rifts!',
+            'magnetic_field': 'Magnetic forces are pulling players!',
+            'time_dilation': 'Time itself is slowing down!',
+            'mass_redistribution': 'Mass is being redistributed randomly!',
+            'teleport_chaos': 'Players are being teleported randomly!',
+            'inverted_controls': 'Neural pathways are disrupted!'
+        };
+        
+        if (window.uiSystem) {
+            window.uiSystem.showNotification(
+                eventNames[eventType] || 'UNKNOWN EVENT',
+                eventDescriptions[eventType] || 'Something strange is happening...',
+                'event',
+                5000
+            );
+        }
+        
+        if (window.audioSystem) {
+            window.audioSystem.playGameSound('event_trigger');
+        }
     }
 }
 
