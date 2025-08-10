@@ -1610,13 +1610,31 @@ class GameEngine {
           : 6000,
     };
 
-    // Initialize chrono matter with increased density
+    // Initialize empty arrays - chunks will populate them
+    this.temporalRifts = [];
+    this.chronoMatter = [];
+
+    // Initialize new exploration entities
+    this.ancientArtifacts = [];
+    this.wormholes = [];
+    this.energyStorms = [];
+    this.mysteryZones = [];
+
+    // Initialize exploration entity timers
+    this.lastArtifactSpawn = 0;
+    this.lastStormSpawn = 0;
+    this.lastMysteryZoneSpawn = 0;
+
+    // Load initial chunks around player spawn point
+    if (this.chunkManager) {
+      const playerPos = this.player.getCenterPosition();
+      this.chunkManager.update(playerPos, Date.now());
+    }
+
+    // Generate initial exploration entities and world elements
+    this.generateInitialExplorationEntities();
     this.spawnInitialChronoMatter();
-
-    // Initialize AI players with increased count
     this.spawnAIPlayers();
-
-    // Initialize other world elements
     this.initializeWorldElements();
   }
 
@@ -1682,15 +1700,10 @@ class GameEngine {
 
     // Add some initial temporal rifts scattered across the larger map
     for (let i = 0; i < 5; i++) {
-      this.temporalRifts.push({
-        position: new Vector2(
-          Math.random() * this.worldBounds.right,
-          Math.random() * this.worldBounds.bottom
-        ),
-        radius: 20 + Math.random() * 10,
-        strength: 0.5 + Math.random() * 0.5,
-        color: "#ff00ff",
-      });
+      const x = Math.random() * this.worldBounds.right;
+      const y = Math.random() * this.worldBounds.bottom;
+      const radius = 20 + Math.random() * 10;
+      this.temporalRifts.push(new TemporalRift(x, y, radius)); // Use new TemporalRift()
     }
   }
 
@@ -1847,35 +1860,6 @@ class GameEngine {
         this.abilityManager.useCurrentAbility(this.player, mouseWorldPos);
         break;
     }
-  }
-
-  initializeWorld() {
-    // Initialize empty arrays - chunks will populate them
-    this.temporalRifts = [];
-    this.chronoMatter = [];
-
-    // Initialize new exploration entities
-    this.ancientArtifacts = [];
-    this.wormholes = [];
-    this.energyStorms = [];
-    this.mysteryZones = [];
-
-    // Initialize exploration entity timers
-    this.lastArtifactSpawn = 0;
-    this.lastStormSpawn = 0;
-    this.lastMysteryZoneSpawn = 0;
-
-    // Load initial chunks around player spawn point
-    if (this.chunkManager) {
-      const playerPos = this.player.getCenterPosition();
-      this.chunkManager.update(playerPos, Date.now());
-    }
-
-    // Generate initial exploration entities
-    this.generateInitialExplorationEntities();
-
-    // Create AI players (they can spawn anywhere, chunks will load as needed)
-    this.generateAIPlayers();
   }
 
   generateInitialExplorationEntities() {
