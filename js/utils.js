@@ -1042,12 +1042,12 @@ const GameConstants = {
     MAX_CELLS_PER_PLAYER: 16,
     
     // Matter spawn settings
-    MATTER_SPAWN_RATE: 2.0, // Increased for denser item spawning
-    MATTER_DENSITY: 3.0,    // Increased density
-    MAX_MATTER_COUNT: 800,  // Increased from typical values
+    MATTER_SPAWN_RATE: 4.0, // Increased for much denser item spawning
+    MATTER_DENSITY: 5.0,    // Increased density
+    MAX_MATTER_COUNT: 1200,  // Increased from 800 for denser distribution
     
     // AI settings  
-    MAX_AI_PLAYERS: 25,     // Increased from typical 10-15
+    MAX_AI_PLAYERS: 40,     // Increased from 25 for more populated arena
     
     // Other gameplay constants
     FRICTION: 0.92,

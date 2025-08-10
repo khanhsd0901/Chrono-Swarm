@@ -1390,6 +1390,7 @@ class GameEngine {
         // Input handling
         this.mouse = { x: 0, y: 0, worldX: 0, worldY: 0 };
         this.keys = new Set();
+        this.discoveryKeyPressed = false;
         
         // Performance monitoring
         this.lastFPSUpdate = 0;
@@ -1433,6 +1434,11 @@ class GameEngine {
         
         // Initialize other world elements
         this.initializeWorldElements();
+        
+        // Initialize leaderboard display
+        setTimeout(() => {
+            this.updateLeaderboard();
+        }, 100);
     }
 
     spawnInitialChronoMatter() {
@@ -1526,7 +1532,13 @@ class GameEngine {
     }
 
     maintainMatterDensity() {
-        if (!this.chronoMatter) this.chronoMatter = [];
+        if (!this.chronoMatter) return;
+        
+        // Add safety check for worldBounds
+        if (!this.worldBounds || !this.worldBounds.right || !this.worldBounds.bottom) {
+            console.warn('WorldBounds not properly initialized, skipping matter density maintenance');
+            return;
+        }
         
         const maxMatter = typeof GameConstants !== 'undefined' ? GameConstants.MAX_MATTER_COUNT : 800;
         const spawnRate = typeof GameConstants !== 'undefined' ? GameConstants.MATTER_SPAWN_RATE : 2.0;
@@ -1640,7 +1652,56 @@ class GameEngine {
                 // Use chrono ability
                 this.abilityManager.useCurrentAbility(this.player, mouseWorldPos);
                 break;
+                
+            case 'KeyE':
+                // Interaction key - handled in update loop but we can add immediate feedback here
+                if (!this.discoveryKeyPressed) {
+                    this.checkInteractions();
+                }
+                break;
         }
+    }
+    
+    checkInteractions() {
+        if (!this.player || !this.player.isAlive) return;
+        
+        // Check for nearby artifacts
+        this.ancientArtifacts?.forEach(artifact => {
+            if (artifact.checkPlayerNearby && artifact.checkPlayerNearby(this.player)) {
+                if (artifact.discover && artifact.discover(this.player)) {
+                    this.applyArtifactEffects(this.player, artifact);
+                    this.showDiscoveryNotification(artifact);
+                }
+            }
+        });
+        
+        // Check for nearby wormholes
+        this.wormholes?.forEach(wormhole => {
+            if (wormhole.canTeleport && wormhole.canTeleport(this.player)) {
+                if (wormhole.teleport && wormhole.teleport(this.player)) {
+                    this.camera.position = this.player.getCenterPosition();
+                }
+            }
+        });
+        
+        // Check for nearby chrono matter
+        this.chronoMatter?.forEach((matter, index) => {
+            if (matter && this.player) {
+                const distance = Vector2.distance(matter.position, this.player.getCenterPosition());
+                const totalRadius = matter.radius + this.player.cells.reduce((total, cell) => total + cell.radius, 0) / this.player.cells.length;
+                
+                if (distance < totalRadius) {
+                    // Collect the matter
+                    this.player.addMass(matter.mass || 5);
+                    this.chronoMatter.splice(index, 1);
+                    
+                    // Show collection notification
+                    if (window.uiSystem) {
+                        window.uiSystem.showNotification(`+${matter.mass || 5} Chrono Matter`, 'success', 1500);
+                    }
+                }
+            }
+        });
     }
 
     initializeWorld() {
@@ -1958,6 +2019,9 @@ class GameEngine {
         const minimapCtx = minimap.getContext('2d');
         if (!minimapCtx) return;
         
+        // Check if minimap is visible
+        if (minimap.style.display === 'none') return;
+        
         // Set minimap size
         const minimapSize = 150;
         minimap.width = minimapSize;
@@ -1972,56 +2036,119 @@ class GameEngine {
         const arenaHeight = typeof GameConstants !== 'undefined' ? GameConstants.ARENA_HEIGHT : 6000;
         const scale = minimapSize / Math.max(arenaWidth, arenaHeight);
         
+        // Draw zone colors if available
+        if (typeof GameConstants !== 'undefined' && GameConstants.ZONES) {
+            Object.entries(GameConstants.ZONES).forEach(([zoneKey, zone]) => {
+                if (zone.bounds) {
+                    const x = (zone.bounds.x / arenaWidth) * minimapSize;
+                    const y = (zone.bounds.y / arenaHeight) * minimapSize;
+                    const width = (zone.bounds.width / arenaWidth) * minimapSize;
+                    const height = (zone.bounds.height / arenaHeight) * minimapSize;
+                    
+                    // Fill zone with semi-transparent color
+                    minimapCtx.fillStyle = (zone.color || '#444444') + '40'; // Semi-transparent
+                    minimapCtx.fillRect(x, y, width, height);
+                    
+                    // Draw zone boundary
+                    minimapCtx.strokeStyle = (zone.color || '#666666') + '80';
+                    minimapCtx.lineWidth = 1;
+                    minimapCtx.strokeRect(x, y, width, height);
+                }
+            });
+        }
+        
         // Draw arena border
         minimapCtx.strokeStyle = '#00ffff';
         minimapCtx.lineWidth = 2;
         minimapCtx.strokeRect(0, 0, minimapSize, minimapSize);
         
-        // Draw all players
+        // Draw all players with better visibility
         const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
         allPlayers.forEach(player => {
-            if (player.cells.length > 0) {
+            if (player && player.cells && player.cells.length > 0) {
                 const center = player.getCenterPosition();
-                const x = (center.x / arenaWidth) * minimapSize;
-                const y = (center.y / arenaHeight) * minimapSize;
-                const radius = Math.max(2, Math.min(8, Math.sqrt(player.getTotalMass()) / 10));
-                
-                minimapCtx.fillStyle = player === this.player ? '#ffffff' : player.color;
-                minimapCtx.beginPath();
-                minimapCtx.arc(x, y, radius, 0, Math.PI * 2);
-                minimapCtx.fill();
-                
-                // Add border for current player
-                if (player === this.player) {
-                    minimapCtx.strokeStyle = '#00ffff';
-                    minimapCtx.lineWidth = 1;
-                    minimapCtx.stroke();
+                if (center) {
+                    const x = (center.x / arenaWidth) * minimapSize;
+                    const y = (center.y / arenaHeight) * minimapSize;
+                    const radius = Math.max(3, Math.min(10, Math.sqrt(player.getTotalMass()) / 8));
+                    
+                    // Draw player with improved visibility
+                    minimapCtx.fillStyle = player === this.player ? '#ffffff' : (player.color || '#ff6b6b');
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(x, y, radius, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                    
+                    // Add border for better visibility
+                    if (player === this.player) {
+                        minimapCtx.strokeStyle = '#00ffff';
+                        minimapCtx.lineWidth = 2;
+                        minimapCtx.stroke();
+                    } else {
+                        minimapCtx.strokeStyle = '#000000';
+                        minimapCtx.lineWidth = 1;
+                        minimapCtx.stroke();
+                    }
                 }
             }
         });
         
-        // Draw chrono matter as small dots
-        this.chronoMatter.forEach(matter => {
-            const x = (matter.position.x / arenaWidth) * minimapSize;
-            const y = (matter.position.y / arenaHeight) * minimapSize;
-            
-            minimapCtx.fillStyle = 'rgba(0, 255, 255, 0.6)';
-            minimapCtx.beginPath();
-            minimapCtx.arc(x, y, 1, 0, Math.PI * 2);
-            minimapCtx.fill();
-        });
+        // Draw chrono matter as visible dots
+        if (this.chronoMatter && this.chronoMatter.length > 0) {
+            this.chronoMatter.forEach(matter => {
+                if (matter && matter.position) {
+                    const x = (matter.position.x / arenaWidth) * minimapSize;
+                    const y = (matter.position.y / arenaHeight) * minimapSize;
+                    
+                    minimapCtx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(x, y, 1.5, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
+            });
+        }
+        
+        // Draw important entities (artifacts, wormholes, etc.)
+        if (this.ancientArtifacts) {
+            this.ancientArtifacts.forEach(artifact => {
+                if (artifact && artifact.position) {
+                    const x = (artifact.position.x / arenaWidth) * minimapSize;
+                    const y = (artifact.position.y / arenaHeight) * minimapSize;
+                    
+                    minimapCtx.fillStyle = '#ffaa00';
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(x, y, 2, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
+            });
+        }
+        
+        if (this.wormholes) {
+            this.wormholes.forEach(wormhole => {
+                if (wormhole && wormhole.position) {
+                    const x = (wormhole.position.x / arenaWidth) * minimapSize;
+                    const y = (wormhole.position.y / arenaHeight) * minimapSize;
+                    
+                    minimapCtx.fillStyle = '#aa00ff';
+                    minimapCtx.beginPath();
+                    minimapCtx.arc(x, y, 2, 0, Math.PI * 2);
+                    minimapCtx.fill();
+                }
+            });
+        }
         
         // Draw view area indicator
-        if (this.player && this.player.cells.length > 0) {
+        if (this.player && this.player.cells && this.player.cells.length > 0 && this.camera) {
             const center = this.player.getCenterPosition();
-            const viewWidth = (this.canvas.width / this.camera.zoom) / arenaWidth * minimapSize;
-            const viewHeight = (this.canvas.height / this.camera.zoom) / arenaHeight * minimapSize;
-            const x = (center.x / arenaWidth) * minimapSize - viewWidth / 2;
-            const y = (center.y / arenaHeight) * minimapSize - viewHeight / 2;
-            
-            minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            minimapCtx.lineWidth = 1;
-            minimapCtx.strokeRect(x, y, viewWidth, viewHeight);
+            if (center) {
+                const viewWidth = (this.canvas.width / this.camera.zoom) / arenaWidth * minimapSize;
+                const viewHeight = (this.canvas.height / this.camera.zoom) / arenaHeight * minimapSize;
+                const x = (center.x / arenaWidth) * minimapSize - viewWidth / 2;
+                const y = (center.y / arenaHeight) * minimapSize - viewHeight / 2;
+                
+                minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                minimapCtx.lineWidth = 1;
+                minimapCtx.strokeRect(x, y, viewWidth, viewHeight);
+            }
         }
     }
 
