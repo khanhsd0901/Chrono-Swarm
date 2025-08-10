@@ -427,117 +427,78 @@ class UISystem {
     const canvas = this.elements.minimap;
     const ctx = canvas.getContext("2d");
 
-    // Set canvas dimensions if not set
     if (canvas.width === 0 || canvas.height === 0) {
       canvas.width = 200;
       canvas.height = 200;
     }
 
-    // Clear minimap
+    // --- BẮT ĐẦU SỬA LỖI MINIMAP ---
     ctx.fillStyle = "rgba(10, 10, 26, 0.8)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate scale
-    const scale = Math.min(
-      canvas.width / GameConstants.ARENA_WIDTH,
-      canvas.height / GameConstants.ARENA_HEIGHT
-    );
+    const scale = canvas.width / GameConstants.ARENA_WIDTH;
 
-    // Draw zone boundaries and colors
+    // 1. Vẽ các khu vực (Zones)
     if (GameConstants.ZONES) {
-      Object.entries(GameConstants.ZONES).forEach(([zoneKey, zone]) => {
-        const bounds = zone.bounds;
-        const x = bounds.x * scale;
-        const y = bounds.y * scale;
-        const width = bounds.width * scale;
-        const height = bounds.height * scale;
-
-        // Fill zone with semi-transparent color
-        ctx.fillStyle = zone.color + "20"; // Very transparent
-        ctx.fillRect(x, y, width, height);
-
-        // Draw zone boundary
-        ctx.strokeStyle = zone.color + "80"; // Semi-transparent
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, width, height);
-
-        // Zone name (if minimap is large enough)
-        if (canvas.width > 150) {
-          ctx.fillStyle = zone.color;
-          ctx.font = "8px Orbitron";
-          ctx.textAlign = "center";
-          ctx.fillText(zone.name.split(" ")[0], x + width / 2, y + height / 2);
+      Object.values(GameConstants.ZONES).forEach((zone) => {
+        if (zone.bounds) {
+          const x = zone.bounds.x * scale;
+          const y = zone.bounds.y * scale;
+          const width = zone.bounds.width * scale;
+          const height = zone.bounds.height * scale;
+          ctx.fillStyle = zone.color + "30"; // Màu nền mờ
+          ctx.fillRect(x, y, width, height);
+          ctx.strokeStyle = zone.color + "80"; // Viền rõ hơn
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x, y, width, height);
         }
       });
     }
 
-    // Draw arena boundary
-    ctx.strokeStyle = "rgba(255, 107, 107, 0.5)";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(
-      0,
-      0,
-      GameConstants.ARENA_WIDTH * scale,
-      GameConstants.ARENA_HEIGHT * scale
-    );
-
-    // Draw temporal rifts
-    if (window.game?.temporalRifts) {
-      ctx.fillStyle = "rgba(0, 255, 0, 0.6)";
-      window.game.temporalRifts.forEach((rift) => {
-        const x = rift.position.x * scale;
-        const y = rift.position.y * scale;
-        const radius = Math.max(2, rift.radius * scale);
+    // 2. Vẽ người chơi và AI
+    const allPlayers = [
+      gameState.player,
+      ...(window.game?.aiPlayers || []),
+    ].filter((p) => p && p.isAlive);
+    allPlayers.forEach((player) => {
+      if (player.cells.length > 0) {
+        const center = player.getCenterPosition();
+        const x = center.x * scale;
+        const y = center.y * scale;
+        // Kích thước chấm trên minimap tỉ lệ với căn bậc hai của khối lượng
+        const size = Math.max(
+          2,
+          Math.sqrt(player.getTotalMass()) * 0.1 * scale * 10
+        );
 
         ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+
+        // Người chơi của mình màu trắng, AI có màu riêng
+        ctx.fillStyle =
+          player === gameState.player ? "#FFFFFF" : player.color.toString();
         ctx.fill();
-      });
-    }
 
-    // Draw players
-    if (window.game?.aiPlayers) {
-      ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
-      window.game.aiPlayers.forEach((ai) => {
-        if (ai.isAlive) {
-          const center = ai.getCenterPosition();
-          const x = center.x * scale;
-          const y = center.y * scale;
-          const size = Math.max(1, Math.sqrt(ai.getTotalMass()) * scale * 0.1);
+        // Thêm viền đen để dễ nhìn hơn
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    });
 
-          ctx.beginPath();
-          ctx.arc(x, y, size, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      });
-    }
-
-    // Draw player (larger and colored)
-    const playerCenter = gameState.player.getCenterPosition();
-    const playerX = playerCenter.x * scale;
-    const playerY = playerCenter.y * scale;
-    const playerSize = Math.max(
-      2,
-      Math.sqrt(gameState.player.getTotalMass()) * scale * 0.1
-    );
-
-    ctx.fillStyle = "rgba(0, 255, 255, 1)";
-    ctx.beginPath();
-    ctx.arc(playerX, playerY, playerSize, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw view border
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.3)";
-    ctx.lineWidth = 1;
+    // 3. Vẽ khung camera của người chơi
     const camera = window.game?.camera;
     if (camera) {
-      const viewWidth = canvas.width / camera.zoom;
-      const viewHeight = canvas.height / camera.zoom;
-      const viewX = (camera.position.x - viewWidth / 2) * scale;
-      const viewY = (camera.position.y - viewHeight / 2) * scale;
-
-      ctx.strokeRect(viewX, viewY, viewWidth * scale, viewHeight * scale);
+      const viewWidth = (this.elements.gameCanvas.width / camera.zoom) * scale;
+      const viewHeight =
+        (this.elements.gameCanvas.height / camera.zoom) * scale;
+      const viewX = camera.position.x * scale - viewWidth / 2;
+      const viewY = camera.position.y * scale - viewHeight / 2;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(viewX, viewY, viewWidth, viewHeight);
     }
+    // --- KẾT THÚC SỬA LỖI MINIMAP ---
   }
 
   openStore() {

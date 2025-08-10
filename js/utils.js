@@ -518,17 +518,17 @@ class GameUtils {
 // Constants used throughout the game
 const GameConstants = {
   // Arena settings - Significantly expanded
-  ARENA_WIDTH: 12000, // Tripled from 4000
-  ARENA_HEIGHT: 12000, // Tripled from 4000
-  ARENA_PADDING: 200, // Increased padding
+  ARENA_WIDTH: 12000, // Gấp 3 lần so với 4000
+  ARENA_HEIGHT: 12000, // Gấp 3 lần so với 4000
+  ARENA_PADDING: 200,
 
   // Chunk system for dynamic loading
-  CHUNK_SIZE: 2000, // Size of each chunk (2000x2000)
-  CHUNKS_X: 6, // Number of chunks horizontally (12000/2000)
-  CHUNKS_Y: 6, // Number of chunks vertically (12000/2000)
-  LOAD_RADIUS: 1, // Load chunks within this radius of player chunk
-  UNLOAD_DISTANCE: 2, // Unload chunks beyond this distance
-  CHUNK_UPDATE_INTERVAL: 1000, // How often to check chunk loading (ms)
+  CHUNK_SIZE: 2000,
+  CHUNKS_X: 6,
+  CHUNKS_Y: 6,
+  LOAD_RADIUS: 1,
+  UNLOAD_DISTANCE: 2,
+  CHUNK_UPDATE_INTERVAL: 1000,
 
   // Zone definitions for the expanded map
   ZONES: {
@@ -562,30 +562,6 @@ const GameConstants = {
       color: "#ffff00",
       effects: { speedMultiplier: 1.2, energyRegeneration: true },
     },
-    NORTHWEST_CHAOS: {
-      name: "Chaos Realm",
-      bounds: { x: 2000, y: 2000, width: 3000, height: 3000 },
-      color: "#ff00ff",
-      effects: { randomEvents: true, chaosMultiplier: 1.5 },
-    },
-    NORTHEAST_CRYSTAL: {
-      name: "Crystal Gardens",
-      bounds: { x: 7000, y: 2000, width: 3000, height: 3000 },
-      color: "#00ff00",
-      effects: { matterSpawnRate: 2.0, crystalBonus: true },
-    },
-    SOUTHWEST_SHADOW: {
-      name: "Shadow Valley",
-      bounds: { x: 2000, y: 7000, width: 3000, height: 3000 },
-      color: "#696969",
-      effects: { stealth: true, speedMultiplier: 1.1 },
-    },
-    SOUTHEAST_TEMPORAL: {
-      name: "Temporal Nexus",
-      bounds: { x: 7000, y: 7000, width: 3000, height: 3000 },
-      color: "#ffd700",
-      effects: { timeDistortion: true, abilityBonus: 1.3 },
-    },
   },
 
   // Player settings
@@ -593,46 +569,46 @@ const GameConstants = {
   MIN_SPLIT_MASS: 50,
   MAX_CELLS: 16,
   EJECT_MASS_AMOUNT: 10,
-  EJECT_SPEED: 600, // Increased by 3x
-  RECOMBINE_TIME: 15000, // 15 seconds
+  EJECT_SPEED: 600,
+  RECOMBINE_TIME: 15000,
 
   // Physics
-  FRICTION: 0.97, // Reduced friction for smoother movement
-  COLLISION_DAMPING: 0.85, // Slightly increased for better collisions
+  FRICTION: 0.97,
+  COLLISION_DAMPING: 0.85,
 
-  // Chrono-Matter - Adjusted for larger map
-  MATTER_SPAWN_RATE: 0.5, // Increased for larger map
+  // Chrono-Matter - Tăng mật độ
+  MATTER_SPAWN_RATE: 2.0, // Gấp 4 lần so với 0.5
   MATTER_VALUE: 2,
   MATTER_RADIUS: 4,
-  MAX_MATTER_COUNT: 2000, // Increased for larger map
+  MAX_MATTER_COUNT: 3000, // Tăng mạnh từ 800
 
-  // Temporal Rifts - Adjusted for larger map
-  RIFT_COUNT: 40, // Increased for larger map
+  // Temporal Rifts
+  RIFT_COUNT: 40,
   RIFT_MIN_RADIUS: 30,
   RIFT_MAX_RADIUS: 60,
-  RIFT_DAMAGE_THRESHOLD: 1.2, // Mass ratio to be damaged
+  RIFT_DAMAGE_THRESHOLD: 1.2,
 
-  // AI Players - Increased for larger map
-  AI_COUNT: 25, // Increased from default for larger arena
+  // AI Players
+  AI_COUNT: 25,
 
   // Abilities
-  STASIS_FIELD_DURATION: 5000, // 5 seconds
+  STASIS_FIELD_DURATION: 5000,
   STASIS_FIELD_RADIUS: 150,
-  STASIS_FIELD_COOLDOWN: 12000, // 12 seconds
-  STASIS_FIELD_COST: 0.15, // 15% of current mass
+  STASIS_FIELD_COOLDOWN: 12000,
+  STASIS_FIELD_COST: 0.15,
 
-  ECHO_DURATION: 3000, // 3 seconds
-  ECHO_COOLDOWN: 20000, // 20 seconds
-  ECHO_COST: 0.1, // 10% of current mass
+  ECHO_DURATION: 3000,
+  ECHO_COOLDOWN: 20000,
+  ECHO_COST: 0.1,
 
-  REWIND_DISTANCE: 1500, // 1.5 seconds back
-  REWIND_COOLDOWN: 30000, // 30 seconds
-  REWIND_COST: 0.2, // 20% of current mass
+  REWIND_DISTANCE: 1500,
+  REWIND_COOLDOWN: 30000,
+  REWIND_COST: 0.2,
 
   // UI
-  CAMERA_SMOOTH: 0.03, // Reduced for better tracking on larger map
+  CAMERA_SMOOTH: 0.03,
   ZOOM_SMOOTH: 0.1,
-  HUD_UPDATE_RATE: 30, // FPS
+  HUD_UPDATE_RATE: 30,
 
   // Performance
   TARGET_FPS: 60,
@@ -654,28 +630,6 @@ const GameConstants = {
   // Monetization
   AD_REWARD_SHARDS: 50,
   DAILY_AD_LIMIT: 5,
-
-  // Game Balance
-  AI_COUNT: 15,
-
-  // Territory System
-  TERRITORY_UPDATE_INTERVAL: 2000, // Update territory every 2 seconds
-
-  // AI Settings
-  AI_DIFFICULTY_SCALING: 1.2,
-  LEADERBOARD_SIZE: 10,
-
-  // Colors
-  COLORS: {
-    PRIMARY: "#00FFFF",
-    SECONDARY: "#FF00FF",
-    ACCENT: "#FFFF00",
-    SUCCESS: "#00FF00",
-    DANGER: "#FF6B6B",
-    WARNING: "#FFB84D",
-    DARK: "#0A0A1A",
-    LIGHT: "#FFFFFF",
-  },
 };
 
 // Chunk Manager for dynamic world loading
