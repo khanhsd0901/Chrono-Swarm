@@ -1,52 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chrono-Swarm - Temporal Arena Combat</title>
-    <meta name="description" content="Command a swarm of temporal energy in this competitive multiplayer arena game. Master time-manipulation abilities and dominate the leaderboard.">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
-</head>
-<body>
+    <meta
+      name="description"
+      content="Command a swarm of temporal energy in this competitive multiplayer arena game. Master time-manipulation abilities and dominate the leaderboard."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
     <!-- Loading Screen -->
     <div id="loadingScreen" class="loading-screen">
-        <div class="loading-content">
-            <h1 class="game-title">CHRONO-SWARM</h1>
-            <div class="loading-bar">
-                <div class="loading-progress" id="loadingProgress"></div>
-            </div>
-            <p class="loading-text">Initializing temporal matrices...</p>
+      <div class="loading-content">
+        <h1 class="game-title">CHRONO-SWARM</h1>
+        <div class="loading-bar">
+          <div class="loading-progress" id="loadingProgress"></div>
         </div>
+        <p class="loading-text">Initializing temporal matrices...</p>
+      </div>
     </div>
 
     <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
-        <div class="menu-background"></div>
-        <div class="menu-content">
-            <h1 class="game-title">CHRONO-SWARM</h1>
-            <div class="menu-section">
-                <input type="text" id="playerName" placeholder="Enter your name" maxlength="20" value="Anonymous">
-                <button id="playButton" class="play-button">ENTER THE ARENA</button>
-            </div>
-            <div class="menu-buttons">
-                <button id="storeButton" class="menu-btn">STORE</button>
-                <button id="helpButton" class="menu-btn">HELP</button>
-                <button id="settingsButton" class="menu-btn">SETTINGS</button>
-            </div>
-            <div class="player-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Level</span>
-                    <span class="stat-value" id="playerLevel">1</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Chrono-Shards</span>
-                    <span class="stat-value" id="chronoShards">0</span>
-                </div>
-            </div>
+      <div class="menu-background"></div>
+      <div class="menu-content">
+        <h1 class="game-title">CHRONO-SWARM</h1>
+        <div class="menu-section">
+          <input
+            type="text"
+            id="playerName"
+            placeholder="Enter your name"
+            maxlength="20"
+            value="Anonymous"
+          />
+          <button id="playButton" class="play-button">ENTER THE ARENA</button>
         </div>
+        <div class="menu-buttons">
+          <button id="storeButton" class="menu-btn">STORE</button>
+          <button id="helpButton" class="menu-btn">HELP</button>
+          <button id="settingsButton" class="menu-btn">SETTINGS</button>
+        </div>
+        <div class="player-stats">
+          <div class="stat-item">
+            <span class="stat-label">Level</span>
+            <span class="stat-value" id="playerLevel">1</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Chrono-Shards</span>
+            <span class="stat-value" id="chronoShards">0</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Game Canvas -->
@@ -54,352 +66,405 @@
 
     <!-- Game HUD -->
     <div id="gameHUD" class="hud hidden">
-        <!-- Top HUD -->
-        <div class="hud-top">
-            <div class="leaderboard">
-                <h3>TOP PLAYERS</h3>
-                <div id="leaderboardList" class="leaderboard-list"></div>
-            </div>
+      <!-- Top HUD -->
+      <div class="hud-top">
+        <div class="leaderboard">
+          <h3>TOP PLAYERS</h3>
+          <div id="leaderboardList" class="leaderboard-list"></div>
         </div>
+      </div>
 
-        <!-- Bottom HUD -->
-        <div class="hud-bottom">
-            <div class="hud-left">
-                <canvas id="minimap" class="minimap"></canvas>
-            </div>
-            <div class="hud-center">
-                <div class="player-mass">
-                    <span id="playerMass">100</span>
-                    <span class="mass-label">MASS</span>
-                </div>
-                <div class="zone-indicator">
-                    <span id="currentZone" class="zone-text">Zone: Neutral Territory</span>
-                </div>
-                <div class="xp-bar">
-                    <div class="xp-progress" id="xpProgress"></div>
-                    <span class="xp-text" id="xpText">Level 1 - 0/500 XP</span>
-                </div>
-            </div>
-            <div class="hud-right">
-                <div class="ability-panel">
-                    <div class="ability-slot" id="chronoAbility">
-                        <div class="ability-icon" id="abilityIcon"></div>
-                        <div class="ability-cooldown" id="abilityCooldown"></div>
-                        <span class="ability-key">Q</span>
-                    </div>
-                    <div class="core-abilities">
-                        <div class="core-ability">
-                            <div class="ability-icon split-icon"></div>
-                            <span class="ability-key">SPACE</span>
-                        </div>
-                        <div class="core-ability">
-                            <div class="ability-icon eject-icon"></div>
-                            <span class="ability-key">W</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <!-- Bottom HUD -->
+      <div class="hud-bottom">
+        <div class="hud-left">
+          <canvas id="minimap" class="minimap"></canvas>
         </div>
+        <div class="hud-center">
+          <div class="player-mass">
+            <span id="playerMass">100</span>
+            <span class="mass-label">MASS</span>
+          </div>
+          <div class="zone-indicator">
+            <span id="currentZone" class="zone-text"
+              >Zone: Neutral Territory</span
+            >
+          </div>
+          <div class="xp-bar">
+            <div class="xp-progress" id="xpProgress"></div>
+            <span class="xp-text" id="xpText">Level 1 - 0/500 XP</span>
+          </div>
+        </div>
+        <div class="hud-right">
+          <div class="ability-panel">
+            <div class="ability-slot" id="chronoAbility">
+              <div class="ability-icon" id="abilityIcon"></div>
+              <div class="ability-cooldown" id="abilityCooldown"></div>
+              <span class="ability-key">Q</span>
+            </div>
+            <div class="core-abilities">
+              <div class="core-ability">
+                <div class="ability-icon split-icon"></div>
+                <span class="ability-key">SPACE</span>
+              </div>
+              <div class="core-ability">
+                <div class="ability-icon eject-icon"></div>
+                <span class="ability-key">W</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Store Modal -->
     <div id="storeModal" class="modal hidden">
-        <div class="modal-content store-content">
-            <div class="modal-header">
-                <h2>CHRONO STORE</h2>
-                <button class="close-btn" id="closeStore">&times;</button>
-            </div>
-            <div class="store-tabs">
-                <button class="store-tab active" data-tab="evolutions">Evolutions</button>
-                <button class="store-tab" data-tab="effects">Effects</button>
-                <button class="store-tab" data-tab="trails">Trails</button>
-            </div>
-            <div class="store-items" id="storeItems"></div>
+      <div class="modal-content store-content">
+        <div class="modal-header">
+          <h2>CHRONO STORE</h2>
+          <button class="close-btn" id="closeStore">&times;</button>
         </div>
+        <div class="store-tabs">
+          <button class="store-tab active" data-tab="evolutions">
+            Evolutions
+          </button>
+          <button class="store-tab" data-tab="effects">Effects</button>
+          <button class="store-tab" data-tab="trails">Trails</button>
+        </div>
+        <div class="store-items" id="storeItems"></div>
+      </div>
     </div>
-
-
 
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal hidden">
-        <div class="modal-content settings-content">
-            <div class="modal-header">
-                <h2>SETTINGS</h2>
-                <button class="close-btn" id="closeSettings">&times;</button>
-            </div>
-            <div class="settings-grid">
-                <div class="setting-item">
-                    <label>Master Volume</label>
-                    <input type="range" id="masterVolume" min="0" max="100" value="50">
-                    <span id="masterVolumeValue">50%</span>
-                </div>
-                <div class="setting-item">
-                    <label>Music Volume</label>
-                    <input type="range" id="musicVolume" min="0" max="100" value="30">
-                    <span id="musicVolumeValue">30%</span>
-                </div>
-                <div class="setting-item">
-                    <label>SFX Volume</label>
-                    <input type="range" id="sfxVolume" min="0" max="100" value="70">
-                    <span id="sfxVolumeValue">70%</span>
-                </div>
-                <div class="setting-item">
-                    <label>Graphics Quality</label>
-                    <select id="graphicsQuality">
-                        <option value="low">Low</option>
-                        <option value="medium" selected>Medium</option>
-                        <option value="high">High</option>
-                    </select>
-                </div>
-                <div class="setting-item">
-                    <label>Show Minimap</label>
-                    <input type="checkbox" id="showMinimap" checked>
-                </div>
-                <div class="setting-item">
-                    <label>Show Damage Numbers</label>
-                    <input type="checkbox" id="showDamageNumbers" checked>
-                </div>
-            </div>
+      <div class="modal-content settings-content">
+        <div class="modal-header">
+          <h2>SETTINGS</h2>
+          <button class="close-btn" id="closeSettings">&times;</button>
         </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label>Master Volume</label>
+            <input
+              type="range"
+              id="masterVolume"
+              min="0"
+              max="100"
+              value="50"
+            />
+            <span id="masterVolumeValue">50%</span>
+          </div>
+          <div class="setting-item">
+            <label>Music Volume</label>
+            <input type="range" id="musicVolume" min="0" max="100" value="30" />
+            <span id="musicVolumeValue">30%</span>
+          </div>
+          <div class="setting-item">
+            <label>SFX Volume</label>
+            <input type="range" id="sfxVolume" min="0" max="100" value="70" />
+            <span id="sfxVolumeValue">70%</span>
+          </div>
+          <div class="setting-item">
+            <label>Graphics Quality</label>
+            <select id="graphicsQuality">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label>Show Minimap</label>
+            <input type="checkbox" id="showMinimap" checked />
+          </div>
+          <div class="setting-item">
+            <label>Show Damage Numbers</label>
+            <input type="checkbox" id="showDamageNumbers" checked />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Help Modal -->
     <div id="helpModal" class="modal hidden">
-        <div class="modal-content help-content">
-            <div class="modal-header">
-                <h2>CHRONO-SWARM GUIDE</h2>
-                <button class="close-btn" id="closeHelp">&times;</button>
-            </div>
-            <div class="help-tabs">
-                <button class="help-tab active" data-tab="basics">Basics</button>
-                <button class="help-tab" data-tab="abilities">Abilities</button>
-                <button class="help-tab" data-tab="events">Events</button>
-                <button class="help-tab" data-tab="tips">Tips</button>
-            </div>
-            <div class="help-content-area">
-                <div class="help-section active" id="help-basics">
-                    <h3>🎮 Game Basics</h3>
-                    <div class="help-item">
-                        <h4>Movement</h4>
-                        <p>Use your <strong>mouse</strong> to control your swarm. Your cells will follow the cursor.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>Growth</h4>
-                        <p>Consume <strong>Chrono-Matter</strong> (glowing particles) to grow larger and stronger.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>Combat</h4>
-                        <p>Absorb smaller players and avoid larger ones. Only consume players smaller than yourself!</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>Splitting</h4>
-                        <p>Press <strong>SPACE</strong> to split your swarm for faster movement or strategic positioning.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>Ejecting Mass</h4>
-                        <p>Press <strong>W</strong> to eject mass towards your cursor. Use this to feed allies or escape danger.</p>
-                    </div>
-                </div>
-                
-                <div class="help-section" id="help-abilities">
-                    <h3>⚡ Chrono Abilities</h3>
-                    <div class="help-item">
-                        <h4>🛡️ Stasis Field</h4>
-                        <p>Create a field that slows down enemies. Perfect for escaping or controlling the battlefield.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>👥 Echo</h4>
-                        <p>Create phantom copies of yourself to confuse enemies and create tactical advantages.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>⏮️ Rewind</h4>
-                        <p>Return to a previous position and state, undoing recent damage or escaping traps.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>Using Abilities</h4>
-                        <p>• Abilities consume mass when used<br>
-                        • Higher level unlocks more abilities<br>
-                        • Each ability has a cooldown period<br>
-                        • Right-click to use current ability</p>
-                    </div>
-                </div>
-                
-                <div class="help-section" id="help-events">
-                    <h3>🌟 Arena Events</h3>
-                    <div class="events-grid">
-                        <div class="event-item">
-                            <h4>⚡ Chrono Storm</h4>
-                            <p>Temporal energy surges - more matter spawns rapidly!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>💥 Mass Surge</h4>
-                            <p>All Chrono-Matter doubles in value temporarily!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🌀 Gravity Shift</h4>
-                            <p>Massive gravitational pull emerges in arena center!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>❄️ Temporal Freeze</h4>
-                            <p>Time slows for some competitors - use advantage!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🌧️ Matter Rain</h4>
-                            <p>Arena floods with energy - feast while you can!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🤖 AI Frenzy</h4>
-                            <p>AI competitors enter aggressive berserker mode!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🚀 Speed Boost</h4>
-                            <p>Everyone moves with lightning speed!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🔥 Shrinking Arena</h4>
-                            <p>Battlefield shrinks - fight for the center!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>💫 Chaos Split</h4>
-                            <p>Unstable energy causes random cell divisions!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🧲 Magnetic Field</h4>
-                            <p>Mysterious forces pull players together!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>⏰ Time Dilation</h4>
-                            <p>Time flows differently across the arena!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>⚖️ Mass Redistribution</h4>
-                            <p>Energy balances across all competitors!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🌟 Teleport Chaos</h4>
-                            <p>Random teleportation rifts appear everywhere!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🔄 Inverted Controls</h4>
-                            <p>Movement controls get scrambled!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>👻 Phantom Swarm</h4>
-                            <p>Ghostly entities hunt the largest players!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🧛 Energy Vampirism</h4>
-                            <p>Consuming others steals their abilities!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🪞 Mirror Dimension</h4>
-                            <p>Parallel arena overlaps - avoid dark reflections!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🕳️ Quantum Tunneling</h4>
-                            <p>Phase through walls and other players!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🧬 Cellular Mitosis</h4>
-                            <p>All cells undergo rapid division chaos!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🔊 Temporal Echo</h4>
-                            <p>Past actions repeat themselves across time!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🕳️ Void Zones</h4>
-                            <p>Dark zones consume everything inside!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🔒 Chrono Lockdown</h4>
-                            <p>No new matter spawns - fight for what remains!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🔗 Quantum Entanglement</h4>
-                            <p>Players become linked - shared effects!</p>
-                        </div>
-                        <div class="event-item">
-                            <h4>🦠 Chrono Plague</h4>
-                            <p>Contagious effect spreads between players!</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="help-section" id="help-tips">
-                    <h3>💡 Pro Tips</h3>
-                    <div class="help-item">
-                        <h4>🎯 Strategic Positioning</h4>
-                        <p>Stay near arena edges when small, move to center when large.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>⚡ Ability Timing</h4>
-                        <p>Save abilities for escaping danger or making aggressive plays.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>👀 Map Awareness</h4>
-                        <p>Use the minimap to track threats and opportunities.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>🎮 Event Strategy</h4>
-                        <p>Adapt your playstyle based on active events - some help, others hinder!</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>🔄 Split Management</h4>
-                        <p>Split only when necessary - being divided makes you vulnerable.</p>
-                    </div>
-                    <div class="help-item">
-                        <h4>💰 Resource Management</h4>
-                        <p>Don't waste mass on abilities unless it's crucial for survival or growth.</p>
-                    </div>
-                </div>
-            </div>
+      <div class="modal-content help-content">
+        <div class="modal-header">
+          <h2>CHRONO-SWARM GUIDE</h2>
+          <button class="close-btn" id="closeHelp">&times;</button>
         </div>
+        <div class="help-tabs">
+          <button class="help-tab active" data-tab="basics">Basics</button>
+          <button class="help-tab" data-tab="abilities">Abilities</button>
+          <button class="help-tab" data-tab="events">Events</button>
+          <button class="help-tab" data-tab="tips">Tips</button>
+        </div>
+        <div class="help-content-area">
+          <div class="help-section active" id="help-basics">
+            <h3>🎮 Game Basics</h3>
+            <div class="help-item">
+              <h4>Movement</h4>
+              <p>
+                Use your <strong>mouse</strong> to control your swarm. Your
+                cells will follow the cursor.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>Growth</h4>
+              <p>
+                Consume <strong>Chrono-Matter</strong> (glowing particles) to
+                grow larger and stronger.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>Combat</h4>
+              <p>
+                Absorb smaller players and avoid larger ones. Only consume
+                players smaller than yourself!
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>Splitting</h4>
+              <p>
+                Press <strong>SPACE</strong> to split your swarm for faster
+                movement or strategic positioning.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>Ejecting Mass</h4>
+              <p>
+                Press <strong>W</strong> to eject mass towards your cursor. Use
+                this to feed allies or escape danger.
+              </p>
+            </div>
+          </div>
+
+          <div class="help-section" id="help-abilities">
+            <h3>⚡ Chrono Abilities</h3>
+            <div class="help-item">
+              <h4>🛡️ Stasis Field</h4>
+              <p>
+                Create a field that slows down enemies. Perfect for escaping or
+                controlling the battlefield.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>👥 Echo</h4>
+              <p>
+                Create phantom copies of yourself to confuse enemies and create
+                tactical advantages.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>⏮️ Rewind</h4>
+              <p>
+                Return to a previous position and state, undoing recent damage
+                or escaping traps.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>Using Abilities</h4>
+              <p>
+                • Abilities consume mass when used<br />
+                • Higher level unlocks more abilities<br />
+                • Each ability has a cooldown period<br />
+                • Right-click to use current ability
+              </p>
+            </div>
+          </div>
+
+          <div class="help-section" id="help-events">
+            <h3>🌟 Arena Events</h3>
+            <div class="events-grid">
+              <div class="event-item">
+                <h4>⚡ Chrono Storm</h4>
+                <p>Temporal energy surges - more matter spawns rapidly!</p>
+              </div>
+              <div class="event-item">
+                <h4>💥 Mass Surge</h4>
+                <p>All Chrono-Matter doubles in value temporarily!</p>
+              </div>
+              <div class="event-item">
+                <h4>🌀 Gravity Shift</h4>
+                <p>Massive gravitational pull emerges in arena center!</p>
+              </div>
+              <div class="event-item">
+                <h4>❄️ Temporal Freeze</h4>
+                <p>Time slows for some competitors - use advantage!</p>
+              </div>
+              <div class="event-item">
+                <h4>🌧️ Matter Rain</h4>
+                <p>Arena floods with energy - feast while you can!</p>
+              </div>
+              <div class="event-item">
+                <h4>🤖 AI Frenzy</h4>
+                <p>AI competitors enter aggressive berserker mode!</p>
+              </div>
+              <div class="event-item">
+                <h4>🚀 Speed Boost</h4>
+                <p>Everyone moves with lightning speed!</p>
+              </div>
+              <div class="event-item">
+                <h4>🔥 Shrinking Arena</h4>
+                <p>Battlefield shrinks - fight for the center!</p>
+              </div>
+              <div class="event-item">
+                <h4>💫 Chaos Split</h4>
+                <p>Unstable energy causes random cell divisions!</p>
+              </div>
+              <div class="event-item">
+                <h4>🧲 Magnetic Field</h4>
+                <p>Mysterious forces pull players together!</p>
+              </div>
+              <div class="event-item">
+                <h4>⏰ Time Dilation</h4>
+                <p>Time flows differently across the arena!</p>
+              </div>
+              <div class="event-item">
+                <h4>⚖️ Mass Redistribution</h4>
+                <p>Energy balances across all competitors!</p>
+              </div>
+              <div class="event-item">
+                <h4>🌟 Teleport Chaos</h4>
+                <p>Random teleportation rifts appear everywhere!</p>
+              </div>
+              <div class="event-item">
+                <h4>🔄 Inverted Controls</h4>
+                <p>Movement controls get scrambled!</p>
+              </div>
+              <div class="event-item">
+                <h4>👻 Phantom Swarm</h4>
+                <p>Ghostly entities hunt the largest players!</p>
+              </div>
+              <div class="event-item">
+                <h4>🧛 Energy Vampirism</h4>
+                <p>Consuming others steals their abilities!</p>
+              </div>
+              <div class="event-item">
+                <h4>🪞 Mirror Dimension</h4>
+                <p>Parallel arena overlaps - avoid dark reflections!</p>
+              </div>
+              <div class="event-item">
+                <h4>🕳️ Quantum Tunneling</h4>
+                <p>Phase through walls and other players!</p>
+              </div>
+              <div class="event-item">
+                <h4>🧬 Cellular Mitosis</h4>
+                <p>All cells undergo rapid division chaos!</p>
+              </div>
+              <div class="event-item">
+                <h4>🔊 Temporal Echo</h4>
+                <p>Past actions repeat themselves across time!</p>
+              </div>
+              <div class="event-item">
+                <h4>🕳️ Void Zones</h4>
+                <p>Dark zones consume everything inside!</p>
+              </div>
+              <div class="event-item">
+                <h4>🔒 Chrono Lockdown</h4>
+                <p>No new matter spawns - fight for what remains!</p>
+              </div>
+              <div class="event-item">
+                <h4>🔗 Quantum Entanglement</h4>
+                <p>Players become linked - shared effects!</p>
+              </div>
+              <div class="event-item">
+                <h4>🦠 Chrono Plague</h4>
+                <p>Contagious effect spreads between players!</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-section" id="help-tips">
+            <h3>💡 Pro Tips</h3>
+            <div class="help-item">
+              <h4>🎯 Strategic Positioning</h4>
+              <p>
+                Stay near arena edges when small, move to center when large.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>⚡ Ability Timing</h4>
+              <p>
+                Save abilities for escaping danger or making aggressive plays.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>👀 Map Awareness</h4>
+              <p>Use the minimap to track threats and opportunities.</p>
+            </div>
+            <div class="help-item">
+              <h4>🎮 Event Strategy</h4>
+              <p>
+                Adapt your playstyle based on active events - some help, others
+                hinder!
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>🔄 Split Management</h4>
+              <p>
+                Split only when necessary - being divided makes you vulnerable.
+              </p>
+            </div>
+            <div class="help-item">
+              <h4>💰 Resource Management</h4>
+              <p>
+                Don't waste mass on abilities unless it's crucial for survival
+                or growth.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Death Screen -->
     <div id="deathScreen" class="death-screen hidden">
-        <div class="death-content">
-            <h2 class="death-title">TEMPORAL DISRUPTION</h2>
-            <div class="death-stats">
-                <div class="stat-row">
-                    <span>Final Mass:</span>
-                    <span id="finalMass">0</span>
-                </div>
-                <div class="stat-row">
-                    <span>Best Rank:</span>
-                    <span id="bestRank">-</span>
-                </div>
-                <div class="stat-row">
-                    <span>Survival Time:</span>
-                    <span id="survivalTime">0s</span>
-                </div>
-                <div class="stat-row">
-                    <span>XP Gained:</span>
-                    <span id="xpGained">0</span>
-                </div>
-            </div>
-            <div class="death-actions">
-                <button id="respawnButton" class="respawn-btn">RESPAWN</button>
-                <button id="mainMenuButton" class="menu-btn-death">MAIN MENU</button>
-                <button id="watchAdButton" class="ad-btn">Watch Ad (+50 Shards)</button>
-            </div>
+      <div class="death-content">
+        <h2 class="death-title">TEMPORAL DISRUPTION</h2>
+        <div class="death-stats">
+          <div class="stat-row">
+            <span>Final Mass:</span>
+            <span id="finalMass">0</span>
+          </div>
+          <div class="stat-row">
+            <span>Best Rank:</span>
+            <span id="bestRank">-</span>
+          </div>
+          <div class="stat-row">
+            <span>Survival Time:</span>
+            <span id="survivalTime">0s</span>
+          </div>
+          <div class="stat-row">
+            <span>XP Gained:</span>
+            <span id="xpGained">0</span>
+          </div>
         </div>
+        <div class="death-actions">
+          <button id="respawnButton" class="respawn-btn">RESPAWN</button>
+          <button id="mainMenuButton" class="menu-btn-death">MAIN MENU</button>
+          <button id="watchAdButton" class="ad-btn">
+            Watch Ad (+50 Shards)
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Tutorial Overlay -->
     <div id="tutorialOverlay" class="tutorial-overlay hidden">
-        <div class="tutorial-content">
-            <h3 id="tutorialTitle">Welcome to Chrono-Swarm</h3>
-            <p id="tutorialText">Move your swarm with the mouse to consume Chrono-Matter and grow larger.</p>
-            <div class="tutorial-controls">
-                <button id="skipTutorial">Skip Tutorial</button>
-                <button id="nextTutorial">Next</button>
-            </div>
+      <div class="tutorial-content">
+        <h3 id="tutorialTitle">Welcome to Chrono-Swarm</h3>
+        <p id="tutorialText">
+          Move your swarm with the mouse to consume Chrono-Matter and grow
+          larger.
+        </p>
+        <div class="tutorial-controls">
+          <button id="skipTutorial">Skip Tutorial</button>
+          <button id="nextTutorial">Next</button>
         </div>
+      </div>
     </div>
 
     <!-- Scripts -->
+    <script src="js/core.js"></script>
+    <script src="js/constants.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/audio.js"></script>
     <script src="js/particles.js"></script>
@@ -411,5 +476,5 @@
     <script src="js/game.js"></script>
     <script src="js/selftest.js"></script>
     <script src="js/main.js"></script>
-</body>
+  </body>
 </html>
