@@ -57,7 +57,15 @@ class Particle {
 
         // Interpolate properties based on age
         this.size = MathUtils.lerp(this.startSize, this.endSize, age);
-        this.color = Color.lerp(this.startColor, this.endColor, age);
+        
+        // Safe color interpolation with validation
+        if (this.startColor && this.endColor) {
+            this.color = Color.lerp(this.startColor, this.endColor, age);
+        } else {
+            // Fallback to ensure color is always valid
+            console.warn('Missing startColor or endColor, using default');
+            this.color = new Color(255, 255, 255, 1 - age);
+        }
 
         // Update pulse phase
         this.pulsePhase += this.pulseSpeed * deltaTime;
@@ -71,6 +79,12 @@ class Particle {
 
         if (screenSize < 0.5) return;
 
+        // Validate color before rendering
+        if (!this.color || typeof this.color.toString !== 'function') {
+            console.warn('Invalid color in particle render, using default');
+            this.color = new Color(255, 255, 255, 1);
+        }
+
         ctx.save();
 
         // Set blend mode
@@ -79,7 +93,7 @@ class Particle {
         }
 
         // Set glow effect
-        if (this.glow) {
+        if (this.glow && this.color) {
             ctx.shadowColor = this.color.toString();
             ctx.shadowBlur = screenSize * 2;
         }
@@ -271,8 +285,36 @@ class ParticleSystem {
     createParticle(x, y, config = {}) {
         const particle = new Particle(x, y, config.type || 'circle');
         
-        // Apply configuration
-        Object.assign(particle, config);
+        // Apply configuration safely, preserving defaults for color properties
+        const safeConfig = { ...config };
+        
+        // Validate and fix color properties
+        if (safeConfig.startColor && (!safeConfig.startColor.r && safeConfig.startColor.r !== 0)) {
+            console.warn('Invalid startColor provided, using default');
+            delete safeConfig.startColor;
+        }
+        if (safeConfig.endColor && (!safeConfig.endColor.r && safeConfig.endColor.r !== 0)) {
+            console.warn('Invalid endColor provided, using default');
+            delete safeConfig.endColor;
+        }
+        if (safeConfig.color && (!safeConfig.color.r && safeConfig.color.r !== 0)) {
+            console.warn('Invalid color provided, using default');
+            delete safeConfig.color;
+        }
+        
+        // Apply safe configuration
+        Object.assign(particle, safeConfig);
+        
+        // Final validation: ensure color properties exist
+        if (!particle.startColor || typeof particle.startColor.toString !== 'function') {
+            particle.startColor = new Color(255, 255, 255, 1);
+        }
+        if (!particle.endColor || typeof particle.endColor.toString !== 'function') {
+            particle.endColor = new Color(255, 255, 255, 0);
+        }
+        if (!particle.color || typeof particle.color.toString !== 'function') {
+            particle.color = new Color(255, 255, 255, 1);
+        }
         
         this.addParticle(particle);
         return particle;
