@@ -602,48 +602,6 @@ class Player {
       window.game.camera.shake(15);
     }
   }
-
-  render(ctx, camera) {
-    if (!this.isAlive) return;
-
-    this.cells.forEach((cell) => {
-      // *** FIX: Add a check for finite values before calling cell.render ***
-      // This prevents the 'createRadialGradient' crash, which happens when
-      // camera zoom or cell properties result in non-finite screen coordinates.
-      const screenPos = camera.worldToScreen(cell.position);
-      const screenRadius = cell.radius * camera.zoom;
-
-      if (
-        !isFinite(screenPos.x) ||
-        !isFinite(screenPos.y) ||
-        !isFinite(screenRadius) ||
-        screenRadius <= 0
-      ) {
-        return; // Skip rendering this cell to prevent a crash.
-      }
-
-      // The error stack indicates the problem is inside `cell.render`, likely
-      // because it doesn't have this safety check which you've correctly
-      // added to your other effect rendering methods.
-      if (typeof cell.render === "function") {
-        cell.render(ctx, camera);
-      }
-    });
-
-    // Render player name
-    if (this.cells.length > 0) {
-      const center = this.getCenterPosition();
-      const screenPos = camera.worldToScreen(center);
-
-      // Also check here for safety
-      if (!isFinite(screenPos.x) || !isFinite(screenPos.y)) return;
-
-      ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-      ctx.font = "14px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(this.name, screenPos.x, screenPos.y - 40);
-    }
-  }
 }
 
 class AIPlayer extends Player {
@@ -1599,6 +1557,10 @@ class GameEngine {
     this.chronoMatter = [];
     this.temporalRifts = [];
     this.ejectedMass = [];
+    this.ancientArtifacts = [];
+    this.wormholes = [];
+    this.energyStorms = [];
+    this.mysteryZones = [];
 
     // Systems
     this.abilityManager = new AbilityManager();
@@ -1616,26 +1578,24 @@ class GameEngine {
     this.setupCanvas();
     this.setupInputHandlers();
 
-    // Initialize chunk manager for dynamic loading (commented out until ChunkManager is implemented)
-    // this.chunkManager = new ChunkManager(this);
-    this.chunkManager = null;
-
-    this.initializeWorld();
+    this.chunkManager = null; // ChunkManager chưa được implement
 
     // Dynamic events system
     this.lastEventTime = 0;
     this.eventCooldown = 0;
     this.activeEvents = [];
-    this.chronoMatterSpawnRate = 1; // Base spawn rate for events
+    this.chronoMatterSpawnRate = 1;
 
-    // Zone management system for expanded map
+    // Zone management system
     this.currentZones = new Map();
     this.zoneEffects = new Map();
+
+    // Khởi tạo thế giới game (đã gộp các hàm trùng lặp)
+    this.initializeWorld();
     this.initializeZones();
   }
 
   initializeWorld() {
-    // Set world boundaries
     this.worldBounds = {
       left: 0,
       top: 0,
@@ -1647,19 +1607,25 @@ class GameEngine {
           : 6000,
     };
 
-    // Initialize chrono matter with increased density
-    this.spawnInitialChronoMatter();
+    // Khởi tạo các mảng entities
+    this.temporalRifts = [];
+    this.chronoMatter = [];
+    this.ejectedMass = [];
+    this.ancientArtifacts = [];
+    this.wormholes = [];
+    this.energyStorms = [];
+    this.mysteryZones = [];
 
-    // Initialize AI players with increased count
-    this.spawnAIPlayers();
+    // Timers
+    this.lastArtifactSpawn = 0;
+    this.lastStormSpawn = 0;
+    this.lastMysteryZoneSpawn = 0;
 
-    // Initialize other world elements
-    this.initializeWorldElements();
-
-    // Initialize leaderboard display
-    setTimeout(() => {
-      this.updateLeaderboard();
-    }, 100);
+    // Tạo Chrono Matter và AI ban đầu
+    this.generateChronoMatter();
+    this.generateAIPlayers();
+    this.generateTemporalRifts();
+    this.generateInitialExplorationEntities();
   }
 
   spawnInitialChronoMatter() {
@@ -1963,35 +1929,6 @@ class GameEngine {
         }
       }
     });
-  }
-
-  initializeWorld() {
-    // Initialize empty arrays - chunks will populate them
-    this.temporalRifts = [];
-    this.chronoMatter = [];
-
-    // Initialize new exploration entities
-    this.ancientArtifacts = [];
-    this.wormholes = [];
-    this.energyStorms = [];
-    this.mysteryZones = [];
-
-    // Initialize exploration entity timers
-    this.lastArtifactSpawn = 0;
-    this.lastStormSpawn = 0;
-    this.lastMysteryZoneSpawn = 0;
-
-    // Load initial chunks around player spawn point
-    if (this.chunkManager) {
-      const playerPos = this.player.getCenterPosition();
-      this.chunkManager.update(playerPos, Date.now());
-    }
-
-    // Generate initial exploration entities
-    this.generateInitialExplorationEntities();
-
-    // Create AI players (they can spawn anywhere, chunks will load as needed)
-    this.generateAIPlayers();
   }
 
   generateInitialExplorationEntities() {
@@ -2586,19 +2523,11 @@ class GameEngine {
   }
 
   updateWorldEntities(deltaTime) {
-    // Update temporal rifts
     this.temporalRifts.forEach((rift) => rift.update(deltaTime));
-
-    // Update chrono matter
-    this.chronoMatter.forEach((matter) => matter.update(deltaTime));
-
-    // Update ejected mass
     this.ejectedMass = this.ejectedMass.filter((mass) => {
       mass.update(deltaTime);
       return mass.isAlive;
     });
-
-    // Update exploration entities
     this.updateExplorationEntities(deltaTime);
   }
 
@@ -3179,11 +3108,69 @@ class GameEngine {
       (p) => p && p.isAlive
     );
 
-    // Sort by mass for proper rendering order (smaller on top)
+    // Sắp xếp theo khối lượng để render đúng thứ tự (nhỏ hơn ở trên)
     allPlayers.sort((a, b) => a.getTotalMass() - b.getTotalMass());
 
     allPlayers.forEach((player) => {
-      player.render(this.ctx, this.camera);
+      // BẮT ĐẦU THAY ĐỔI: Render trực tiếp các cell và tên của player
+      if (!player.isAlive) return;
+
+      player.cells.forEach((cell) => {
+        // Kiểm tra an toàn để tránh lỗi render
+        const screenPos = this.camera.worldToScreen(cell.position);
+        const screenRadius = cell.radius * this.camera.zoom;
+
+        if (
+          !isFinite(screenPos.x) ||
+          !isFinite(screenPos.y) ||
+          !isFinite(screenRadius) ||
+          screenRadius <= 0
+        ) {
+          return; // Bỏ qua việc render cell này để tránh lỗi
+        }
+
+        // Gọi hàm render của cell nếu nó tồn tại
+        if (typeof cell.render === "function") {
+          cell.render(this.ctx, this.camera);
+        } else {
+          // Phương án dự phòng: vẽ một hình tròn đơn giản nếu cell.render không tồn tại
+          this.ctx.fillStyle = cell.color.toString() || "#FFFFFF";
+          this.ctx.beginPath();
+          this.ctx.arc(screenPos.x, screenPos.y, screenRadius, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+      });
+
+      // Render tên người chơi
+      if (player.cells.length > 0) {
+        const center = player.getCenterPosition();
+        const screenPos = this.camera.worldToScreen(center);
+
+        // Kiểm tra an toàn
+        if (!isFinite(screenPos.x) || !isFinite(screenPos.y)) return;
+
+        const highestCell = player.cells.reduce((prev, current) =>
+          prev.radius > current.radius ? prev : current
+        );
+        const screenRadius = highestCell.radius * this.camera.zoom;
+
+        this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        this.ctx.font = `bold ${Math.max(12, 14 * this.camera.zoom)}px Arial`;
+        this.ctx.textAlign = "center";
+        this.ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeText(
+          player.name,
+          screenPos.x,
+          screenPos.y - screenRadius - 5
+        );
+        this.ctx.fillText(
+          player.name,
+          screenPos.x,
+          screenPos.y - screenRadius - 5
+        );
+      }
+      // KẾT THÚC THAY ĐỔI
     });
   }
 

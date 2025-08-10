@@ -192,4 +192,9 @@ class GameUtils {
     if (!str) return "";
     return str.replace(/[<>&]/g, "").trim().slice(0, 20);
   }
+
+  static getRequiredXP(level) {
+    if (level <= 1) return 100;
+    return Math.floor(100 * Math.pow(level, 1.5));
+  }
 }
