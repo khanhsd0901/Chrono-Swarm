@@ -1,33 +1,25 @@
-// Game Engine for Chrono-Swarm
-// Main game loop, world management, and game logic orchestration
-
 class Camera {
   constructor(canvas) {
     this.canvas = canvas;
     this.position = new Vector2(0, 0);
     this.zoom = 1;
     this.targetZoom = 1;
-    this.minZoom = 0.05; // Allow much more zoom out for large players
+    this.minZoom = 0.05;
     this.maxZoom = 3;
-    this.smoothing =
-      typeof GameConstants !== "undefined" ? GameConstants.CAMERA_SMOOTH : 0.1;
-    this.zoomSmoothing =
-      typeof GameConstants !== "undefined" ? GameConstants.ZOOM_SMOOTH : 0.05;
+    this.smoothing = GameConstants.CAMERA_SMOOTH || 0.1;
+    this.zoomSmoothing = GameConstants.ZOOM_SMOOTH || 0.05;
     this.shakeAmount = 0;
     this.shakeDecay = 0.9;
     this.shakeOffset = new Vector2(0, 0);
   }
 
   update(deltaTime) {
-    // Smooth zoom
     this.zoom = MathUtils.lerp(this.zoom, this.targetZoom, this.zoomSmoothing);
 
-    // Screen shake
     if (this.shakeAmount > 0) {
       this.shakeOffset.x = (Math.random() - 0.5) * this.shakeAmount;
       this.shakeOffset.y = (Math.random() - 0.5) * this.shakeAmount;
       this.shakeAmount *= this.shakeDecay;
-
       if (this.shakeAmount < 0.1) {
         this.shakeAmount = 0;
         this.shakeOffset.x = 0;
@@ -37,21 +29,16 @@ class Camera {
   }
 
   followPlayer(player) {
-    if (!player || player.cells.length === 0) return;
+    if (!player || !player.cells || player.cells.length === 0) return;
 
     const targetPosition = player.getCenterPosition();
-
-    // Calculate player movement speed for dynamic camera response
     const playerVelocity =
-      player.cells.reduce((total, cell) => {
-        return total + Vector2.magnitude(cell.velocity);
-      }, 0) / player.cells.length;
-
-    // Dynamic camera smoothing based on movement speed
+      player.cells.reduce(
+        (total, cell) => total + Vector2.magnitude(cell.velocity),
+        0
+      ) / player.cells.length;
     const dynamicSmoothing =
-      playerVelocity > 100
-        ? this.smoothing * 1.3 // Faster camera when moving fast
-        : this.smoothing;
+      playerVelocity > 100 ? this.smoothing * 1.3 : this.smoothing;
 
     this.position = Vector2.lerp(
       this.position,
@@ -59,25 +46,16 @@ class Camera {
       dynamicSmoothing
     );
 
-    // Enhanced dynamic zoom based on player size and movement
     const playerMass = player.getTotalMass();
-
-    // More aggressive zoom out formula - zooms out much more as player grows
-    // Base mass of 100 = zoom 1, mass 400 = zoom 0.5, mass 1600 = zoom 0.25, etc.
-    const massScale = playerMass / 100; // Normalize to starting mass
-    const zoomReduction = Math.min(2.5, Math.sqrt(massScale)); // Cap the reduction
+    const massScale = playerMass / 100;
+    const zoomReduction = Math.min(2.5, Math.sqrt(massScale));
     const baseZoom = Math.max(
       this.minZoom,
       Math.min(this.maxZoom, 1 / zoomReduction)
     );
-
-    // Additional zoom out when moving fast for better visibility
     const speedZoomFactor = playerVelocity > 80 ? 0.85 : 1;
-
-    // Further zoom out for very large players to show more of the battlefield
     const massBonus =
       playerMass > 1000 ? Math.max(0.7, 1 - (playerMass - 1000) / 5000) : 1;
-
     this.targetZoom = baseZoom * speedZoomFactor * massBonus;
   }
 
@@ -112,7 +90,6 @@ class Camera {
   isInView(position, radius) {
     const screenPos = this.worldToScreen(position);
     const screenRadius = radius * this.zoom;
-
     return (
       screenPos.x + screenRadius > 0 &&
       screenPos.x - screenRadius < this.canvas.width &&
@@ -124,105 +101,71 @@ class Camera {
 
 class Player {
   constructor(name, color, isAI = false) {
-    try {
-      this.id = GameUtils.generateId();
-      this.name = name;
-      this.color = color;
-      this.cells = [];
-      this.isAI = isAI;
-      this.isAlive = true;
-      this.score = 0;
-      this.kills = 0;
-      this.survivalTime = 0;
-      this.rank = 0;
-      this.level = 1;
-      this.formation = "default";
-
-      // Movement history for rewind ability
-      this.movementHistory = [];
-      this.maxHistoryLength = 100; // Store 100 position snapshots
-      this.historyInterval = 50; // Record every 50ms
-      this.lastHistoryRecord = 0;
-
-      // Initialize with starting cell
-      this.spawn();
-    } catch (error) {
-      console.error("Error creating Player:", error);
-      throw error;
-    }
+    this.id = GameUtils.generateId();
+    this.name = name;
+    this.color = color;
+    this.cells = [];
+    this.isAI = isAI;
+    this.isAlive = true;
+    this.score = 0;
+    this.kills = 0;
+    this.survivalTime = 0;
+    this.rank = 0;
+    this.level = 1;
+    this.formation = "default";
+    this.movementHistory = [];
+    this.maxHistoryLength = 100;
+    this.historyInterval = 50;
+    this.lastHistoryRecord = 0;
+    this.spawn();
   }
 
   spawn() {
-    try {
-      this.isAlive = true;
-      this.cells = [];
-
-      // Random spawn position within arena
-      const spawnX = MathUtils.random(
-        GameConstants.ARENA_PADDING,
-        GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING
-      );
-      const spawnY = MathUtils.random(
-        GameConstants.ARENA_PADDING,
-        GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING
-      );
-
-      const startCell = new Cell(
-        spawnX,
-        spawnY,
-        GameConstants.INITIAL_MASS,
-        this.color,
-        this
-      );
-      this.cells.push(startCell);
-
-      this.survivalTime = 0;
-      this.score = GameConstants.INITIAL_MASS;
-    } catch (error) {
-      console.error("Error in Player.spawn:", error);
-      throw error;
-    }
+    this.isAlive = true;
+    this.cells = [];
+    const spawnX = MathUtils.random(
+      GameConstants.ARENA_PADDING,
+      GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING
+    );
+    const spawnY = MathUtils.random(
+      GameConstants.ARENA_PADDING,
+      GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING
+    );
+    const startCell = new Cell(
+      spawnX,
+      spawnY,
+      GameConstants.INITIAL_MASS,
+      this.color,
+      this
+    );
+    this.cells.push(startCell);
+    this.survivalTime = 0;
+    this.score = GameConstants.INITIAL_MASS;
   }
 
   update(deltaTime, mousePosition = null) {
     if (!this.isAlive) return;
-
     this.survivalTime += deltaTime;
-
-    // Record movement history
     this.recordMovementHistory();
-
-    // Update all cells
     this.cells = this.cells.filter((cell) => {
       cell.update(deltaTime);
       return cell.isAlive;
     });
-
-    // Check if player is dead (no cells left)
     if (this.cells.length === 0) {
       this.die();
       return;
     }
-
-    // Handle movement
     if (mousePosition) {
       this.moveTowards(mousePosition, deltaTime);
     }
-
-    // Handle cell recombination
     this.handleRecombination();
-
-    // Update formation
     this.updateFormation(deltaTime);
-
-    // Update score
     this.score = this.getTotalMass();
   }
 
   recordMovementHistory() {
     const now = Date.now();
     if (now - this.lastHistoryRecord < this.historyInterval) return;
-
     const snapshot = {
       time: now,
       cells: this.cells.map((cell) => ({
@@ -231,13 +174,10 @@ class Player {
         velocity: cell.velocity.clone(),
       })),
     };
-
     this.movementHistory.push(snapshot);
-
     if (this.movementHistory.length > this.maxHistoryLength) {
       this.movementHistory.shift();
     }
-
     this.lastHistoryRecord = now;
   }
 
@@ -246,52 +186,27 @@ class Player {
     const direction = Vector2.subtract(targetPosition, playerCenter);
     const distance = Vector2.magnitude(direction);
 
-    if (distance < 1) return; // Reduced dead zone from 3 to 1 for better responsiveness
+    // Nếu chuột ở quá gần, giảm tốc độ để dừng lại
+    if (distance < 1) {
+      this.cells.forEach((cell) => {
+        cell.velocity = Vector2.multiply(cell.velocity, 0.9);
+      });
+      return;
+    }
 
     const normalizedDirection = Vector2.normalize(direction);
 
     this.cells.forEach((cell) => {
-      const speed = GameUtils.calculateSpeed(cell.mass);
+      // Tăng tốc độ cơ bản lên đáng kể để di chuyển rõ rệt hơn
+      const speed = GameUtils.calculateSpeed(cell.mass) * 100;
 
-      // Apply stasis field slowdown if present
-      let slowFactor = 1;
-      if (window.abilityManager) {
-        slowFactor = window.abilityManager.getStasisSlowFactor(cell, this.id);
-      }
+      // Vận tốc mục tiêu dựa trên khoảng cách tới chuột (di chuyển nhanh hơn khi chuột ở xa)
+      const targetSpeed = Math.min(speed, distance);
+      const targetVelocity = Vector2.multiply(normalizedDirection, targetSpeed);
 
-      // Apply event-based speed modifications
-      if (this.frozenSpeedMultiplier) {
-        slowFactor *= this.frozenSpeedMultiplier;
-      }
-      if (this.frenzySpeedBoost) {
-        slowFactor *= this.frenzySpeedBoost;
-      }
-
-      // Apply zone-based speed modifications
-      if (this.zoneSpeedMultiplier) {
-        slowFactor *= this.zoneSpeedMultiplier;
-      }
-
-      // Enhanced movement with momentum and distance-based acceleration
-      const distanceFactor = Math.min(distance / 80, 2.0); // Increased max acceleration factor
-      const responsiveSpeed = speed * slowFactor * distanceFactor;
-
-      // Improved velocity application for smoother movement
-      const acceleration = Vector2.multiply(
-        normalizedDirection,
-        responsiveSpeed
-      );
-      const accelerationDelta = Vector2.multiply(
-        acceleration,
-        deltaTime / 1000
-      );
-
-      // Add momentum - larger cells maintain more momentum
-      const momentumFactor = 1 + cell.mass / 1000; // Larger cells have more momentum
-      cell.velocity = Vector2.add(
-        Vector2.multiply(cell.velocity, 0.92), // Reduced velocity retention for better responsiveness
-        Vector2.multiply(accelerationDelta, momentumFactor)
-      );
+      // Can thiệp tuyến tính (lerp) để di chuyển mượt mà tới vận tốc mục tiêu
+      // Điều này giúp nhân vật tăng và giảm tốc một cách tự nhiên
+      cell.velocity = Vector2.lerp(cell.velocity, targetVelocity, 0.1);
     });
   }
 
@@ -300,18 +215,12 @@ class Player {
       for (let j = i + 1; j < this.cells.length; j++) {
         const cell1 = this.cells[i];
         const cell2 = this.cells[j];
-
         if (cell1.canCombineWith(cell2)) {
           cell1.combineWith(cell2);
           this.cells.splice(j, 1);
-          j--; // Adjust index after removal
-
-          // Play combination sound
-          if (window.audioSystem) {
-            window.audioSystem.playGameSound("recombine");
-          }
-
-          break; // Only combine one pair per frame
+          j--;
+          if (window.audioSystem) window.audioSystem.playGameSound("recombine");
+          break;
         }
       }
     }
@@ -319,7 +228,6 @@ class Player {
 
   updateFormation(deltaTime) {
     if (this.cells.length <= 1 || this.formation === "default") return;
-
     const center = this.getCenterPosition();
     const formations = {
       pinwheel: this.updatePinwheelFormation,
@@ -327,7 +235,6 @@ class Player {
       grid: this.updateGridFormation,
       orbit: this.updateOrbitFormation,
     };
-
     const formationHandler = formations[this.formation];
     if (formationHandler) {
       formationHandler.call(this, center, deltaTime);
@@ -351,7 +258,6 @@ class Player {
   updatePhalanxFormation(center, deltaTime) {
     const columns = Math.ceil(Math.sqrt(this.cells.length));
     const spacing = 40;
-
     this.cells.forEach((cell, index) => {
       const row = Math.floor(index / columns);
       const col = index % columns;
@@ -371,7 +277,6 @@ class Player {
   updateGridFormation(center, deltaTime) {
     const gridSize = Math.ceil(Math.sqrt(this.cells.length));
     const spacing = 35;
-
     this.cells.forEach((cell, index) => {
       const row = Math.floor(index / gridSize);
       const col = index % gridSize;
@@ -405,11 +310,8 @@ class Player {
 
   split(direction) {
     if (this.cells.length >= GameConstants.MAX_CELLS) return false;
-
-    // Find largest cell to split
-    let largestCell = null;
-    let largestMass = 0;
-
+    let largestCell = null,
+      largestMass = 0;
     for (const cell of this.cells) {
       if (
         cell.mass > largestMass &&
@@ -419,77 +321,53 @@ class Player {
         largestMass = cell.mass;
       }
     }
-
     if (!largestCell) return false;
-
     const newCell = largestCell.split(direction);
     if (newCell) {
       this.cells.push(newCell);
-
-      // Play split sound
-      if (window.audioSystem) {
-        window.audioSystem.playGameSound("split");
-      }
-
-      // Create split effect
-      if (window.particleSystem) {
+      if (window.audioSystem) window.audioSystem.playGameSound("split");
+      if (window.particleSystem)
         window.particleSystem.createExplosion(
           largestCell.position,
           "default",
           8
         );
-      }
-
       return true;
     }
-
     return false;
   }
 
   ejectMass(direction) {
-    // Find cell with most mass to eject from
-    let bestCell = null;
-    let maxMass = 0;
-
+    let bestCell = null,
+      maxMass = 0;
     for (const cell of this.cells) {
       if (cell.mass > maxMass && cell.mass > GameConstants.EJECT_MASS_AMOUNT) {
         bestCell = cell;
         maxMass = cell.mass;
       }
     }
-
     if (!bestCell) return null;
-
     const ejectedMass = bestCell.ejectMass(direction);
-
-    if (ejectedMass && window.audioSystem) {
+    if (ejectedMass && window.audioSystem)
       window.audioSystem.playGameSound("eject");
-    }
-
     return ejectedMass;
   }
 
   consumeMassForAbility(amount) {
     const totalMass = this.getTotalMass();
     if (totalMass <= amount) return false;
-
     const ratio = amount / totalMass;
-
     this.cells.forEach((cell) => {
       cell.mass *= 1 - ratio;
       cell.radius = GameUtils.calculateMassRadius(cell.mass);
     });
-
     return true;
   }
 
   rewindToTime(milliseconds) {
     const targetTime = Date.now() - milliseconds;
-
-    // Find closest snapshot to target time
-    let closestSnapshot = null;
-    let closestDiff = Infinity;
-
+    let closestSnapshot = null,
+      closestDiff = Infinity;
     for (const snapshot of this.movementHistory) {
       const diff = Math.abs(snapshot.time - targetTime);
       if (diff < closestDiff) {
@@ -497,10 +375,7 @@ class Player {
         closestSnapshot = snapshot;
       }
     }
-
     if (!closestSnapshot) return false;
-
-    // Restore positions and states
     this.cells = [];
     closestSnapshot.cells.forEach((cellData) => {
       const cell = new Cell(
@@ -513,7 +388,6 @@ class Player {
       cell.velocity = cellData.velocity.clone();
       this.cells.push(cell);
     });
-
     return true;
   }
 
@@ -530,30 +404,19 @@ class Player {
   }
 
   consumeCell(consumingCell, targetCell) {
-    const gainedMass = GameUtils.calculateConsumptionGain(targetCell.mass);
+    const gainedMass = targetCell.mass; // Simplified gain
     consumingCell.mass += gainedMass;
     consumingCell.radius = GameUtils.calculateMassRadius(consumingCell.mass);
-
     this.kills++;
-
-    // Visual and audio feedback
-    if (window.particleSystem) {
+    if (window.particleSystem)
       window.particleSystem.createConsumptionEffect(
         targetCell.position,
         consumingCell.position,
         targetCell.color,
         targetCell.mass
       );
-    }
-
-    if (window.audioSystem) {
-      window.audioSystem.playGameSound("consume_player");
-    }
-
-    // Camera shake
-    if (window.game && window.game.camera) {
-      window.game.camera.shake(5);
-    }
+    if (window.audioSystem) window.audioSystem.playGameSound("consume_player");
+    if (window.game && window.game.camera) window.game.camera.shake(5);
   }
 
   getTotalMass() {
@@ -562,10 +425,8 @@ class Player {
 
   getCenterPosition() {
     if (this.cells.length === 0) return new Vector2(0, 0);
-
-    let totalMass = 0;
-    let weightedPos = new Vector2(0, 0);
-
+    let totalMass = 0,
+      weightedPos = new Vector2(0, 0);
     this.cells.forEach((cell) => {
       weightedPos = Vector2.add(
         weightedPos,
@@ -573,17 +434,13 @@ class Player {
       );
       totalMass += cell.mass;
     });
-
     if (totalMass === 0)
       return this.cells[0] ? this.cells[0].position.clone() : new Vector2(0, 0);
-
     return Vector2.multiply(weightedPos, 1 / totalMass);
   }
 
   die() {
     this.isAlive = false;
-
-    // Create death explosion
     if (window.particleSystem && this.cells.length > 0) {
       const center = this.getCenterPosition();
       window.particleSystem.createDeathExplosion(
@@ -592,15 +449,9 @@ class Player {
         this.getTotalMass()
       );
     }
-
-    if (window.audioSystem) {
-      window.audioSystem.playGameSound("death");
-    }
-
-    // Camera shake for player death
-    if (!this.isAI && window.game && window.game.camera) {
+    if (window.audioSystem) window.audioSystem.playGameSound("death");
+    if (!this.isAI && window.game && window.game.camera)
       window.game.camera.shake(15);
-    }
   }
 }
 
@@ -3101,14 +2952,15 @@ class GameEngine {
     allPlayers.sort((a, b) => a.getTotalMass() - b.getTotalMass());
 
     allPlayers.forEach((player) => {
-      // BẮT ĐẦU THAY ĐỔI: Render trực tiếp các cell và tên của player
       if (!player.isAlive) return;
 
       player.cells.forEach((cell) => {
-        // Kiểm tra an toàn để tránh lỗi render
+        // --- BẮT ĐẦU SỬA LỖI ---
+        // Tính toán tọa độ và bán kính trên màn hình MỘT LẦN DUY NHẤT
         const screenPos = this.camera.worldToScreen(cell.position);
         const screenRadius = cell.radius * this.camera.zoom;
 
+        // Kiểm tra an toàn để tránh lỗi render
         if (
           !isFinite(screenPos.x) ||
           !isFinite(screenPos.y) ||
@@ -3118,24 +2970,74 @@ class GameEngine {
           return; // Bỏ qua việc render cell này để tránh lỗi
         }
 
-        // Gọi hàm render của cell nếu nó tồn tại
-        if (typeof cell.render === "function") {
-          cell.render(this.ctx, this.camera);
-        } else {
-          // Phương án dự phòng: vẽ một hình tròn đơn giản nếu cell.render không tồn tại
-          this.ctx.fillStyle = cell.color.toString() || "#FFFFFF";
+        // Lấy logic render chi tiết từ file entities.js và áp dụng trực tiếp tại đây
+        // Việc này tránh gọi lại hàm cell.render() và ngăn lỗi biến đổi tọa độ 2 lần.
+
+        // 1. Render vệt di chuyển (trail)
+        if (cell.trail.length > 1) {
+          this.ctx.strokeStyle = `rgba(${cell.color.r}, ${cell.color.g}, ${cell.color.b}, 0.3)`;
+          this.ctx.lineWidth = Math.max(1, screenRadius * 0.1);
+          this.ctx.lineCap = "round";
+          this.ctx.lineJoin = "round";
           this.ctx.beginPath();
-          this.ctx.arc(screenPos.x, screenPos.y, screenRadius, 0, Math.PI * 2);
-          this.ctx.fill();
+          for (let i = 0; i < cell.trail.length; i++) {
+            const trailPos = this.camera.worldToScreen(cell.trail[i]);
+            if (i === 0) {
+              this.ctx.moveTo(trailPos.x, trailPos.y);
+            } else {
+              this.ctx.lineTo(trailPos.x, trailPos.y);
+            }
+          }
+          this.ctx.stroke();
         }
+
+        // 2. Render thân cell chính với hiệu ứng gradient
+        const gradient = this.ctx.createRadialGradient(
+          screenPos.x,
+          screenPos.y,
+          0,
+          screenPos.x,
+          screenPos.y,
+          screenRadius
+        );
+
+        const pulseIntensity = Math.sin(cell.pulsePhase) * 0.1 + 0.9;
+        const glowColor = new Color(
+          cell.color.r,
+          cell.color.g,
+          cell.color.b,
+          0.8 * pulseIntensity
+        );
+        const coreColor = new Color(
+          cell.color.r,
+          cell.color.g,
+          cell.color.b,
+          0.6
+        );
+
+        gradient.addColorStop(0, glowColor.toString());
+        gradient.addColorStop(0.7, coreColor.toString());
+        gradient.addColorStop(1, "rgba(0,0,0,0.2)");
+
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(screenPos.x, screenPos.y, screenRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // 3. Render viền ngoài
+        this.ctx.strokeStyle = `rgba(${cell.color.r}, ${cell.color.g}, ${cell.color.b}, 0.8)`;
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(screenPos.x, screenPos.y, screenRadius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        // --- KẾT THÚC SỬA LỖI ---
       });
 
-      // Render tên người chơi
+      // Render tên người chơi (logic này vẫn giữ nguyên)
       if (player.cells.length > 0) {
         const center = player.getCenterPosition();
         const screenPos = this.camera.worldToScreen(center);
 
-        // Kiểm tra an toàn
         if (!isFinite(screenPos.x) || !isFinite(screenPos.y)) return;
 
         const highestCell = player.cells.reduce((prev, current) =>
@@ -3159,7 +3061,6 @@ class GameEngine {
           screenPos.y - screenRadius - 5
         );
       }
-      // KẾT THÚC THAY ĐỔI
     });
   }
 
@@ -4420,9 +4321,6 @@ class GameEngine {
   }
 }
 
-// New Event Implementations for Enhanced Gameplay
-
-// Phantom Swarm - Ghostly entities hunt largest players
 GameEngine.prototype.createPhantomSwarm = function (event) {
   event.phantoms = [];
   for (let i = 0; i < event.phantomCount; i++) {
