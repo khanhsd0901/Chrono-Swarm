@@ -1223,15 +1223,6 @@ class AIPlayer extends Player {
       this.stateTimer = 0;
       this.lastTargetChange = Date.now();
     }
-
-    // Dynamic direction changes based on adaptability
-    if (
-      timeSinceLastTarget > this.minTargetTime &&
-      Math.random() < 0.2 + this.adaptability * 0.3
-    ) {
-      this.target = this.generateRandomTarget();
-      this.lastTargetChange = Date.now();
-    }
   }
 
   handleHunting(threats, prey, food, rifts) {

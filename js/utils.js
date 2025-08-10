@@ -417,8 +417,8 @@ class GameUtils {
 
   static calculateSpeed(mass) {
     // Improved speed calculation - less harsh penalty for large mass
-    const baseSpeed = 3000; // Increased base speed by 3x (1000 -> 3000)
-    const minSpeed = 900; // Increased minimum speed by 3x (300 -> 900)
+    const baseSpeed = 3500; // Increased base speed by 3x (1000 -> 3000)
+    const minSpeed = 1500; // Increased minimum speed by 3x (300 -> 900)
     // Use a gentler curve that doesn't drop speed as dramatically
     const speed = baseSpeed / Math.pow(mass / 100, 0.3); // Changed from sqrt to power of 0.3
     return Math.max(speed, minSpeed);

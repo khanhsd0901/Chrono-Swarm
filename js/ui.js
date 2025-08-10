@@ -432,10 +432,12 @@ class UISystem {
       canvas.height = 200;
     }
 
-    // --- BẮT ĐẦU SỬA LỖI MINIMAP ---
+    // --- BẮT ĐẦU SỬA LỖI VÀ CẢI TIẾN MINIMAP ---
+    // Nền tối cho minimap
     ctx.fillStyle = "rgba(10, 10, 26, 0.8)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Tỉ lệ chuyển đổi từ tọa độ thế giới game sang tọa độ minimap
     const scale = canvas.width / GameConstants.ARENA_WIDTH;
 
     // 1. Vẽ các khu vực (Zones)
@@ -446,7 +448,7 @@ class UISystem {
           const y = zone.bounds.y * scale;
           const width = zone.bounds.width * scale;
           const height = zone.bounds.height * scale;
-          ctx.fillStyle = zone.color + "30"; // Màu nền mờ
+          ctx.fillStyle = zone.color + "30"; // Màu nền mờ của vùng
           ctx.fillRect(x, y, width, height);
           ctx.strokeStyle = zone.color + "80"; // Viền rõ hơn
           ctx.lineWidth = 1;
@@ -456,16 +458,18 @@ class UISystem {
     }
 
     // 2. Vẽ người chơi và AI
+    // Lấy danh sách người chơi từ gameState thay vì window.game để đảm bảo tính nhất quán
     const allPlayers = [
       gameState.player,
-      ...(window.game?.aiPlayers || []),
+      ...(gameState.aiPlayers || []),
     ].filter((p) => p && p.isAlive);
+
     allPlayers.forEach((player) => {
       if (player.cells.length > 0) {
         const center = player.getCenterPosition();
         const x = center.x * scale;
         const y = center.y * scale;
-        // Kích thước chấm trên minimap tỉ lệ với căn bậc hai của khối lượng
+        // Kích thước chấm trên minimap tỉ lệ với căn bậc hai của khối lượng để trực quan hơn
         const size = Math.max(
           2,
           Math.sqrt(player.getTotalMass()) * 0.1 * scale * 10
@@ -479,7 +483,7 @@ class UISystem {
           player === gameState.player ? "#FFFFFF" : player.color.toString();
         ctx.fill();
 
-        // Thêm viền đen để dễ nhìn hơn
+        // Thêm viền đen để các chấm nổi bật hơn trên nền các vùng
         ctx.strokeStyle = "#000000";
         ctx.lineWidth = 0.5;
         ctx.stroke();
@@ -487,7 +491,8 @@ class UISystem {
     });
 
     // 3. Vẽ khung camera của người chơi
-    const camera = window.game?.camera;
+    // Lấy camera từ gameState
+    const camera = gameState.camera;
     if (camera) {
       const viewWidth = (this.elements.gameCanvas.width / camera.zoom) * scale;
       const viewHeight =
@@ -498,7 +503,7 @@ class UISystem {
       ctx.lineWidth = 1;
       ctx.strokeRect(viewX, viewY, viewWidth, viewHeight);
     }
-    // --- KẾT THÚC SỬA LỖI MINIMAP ---
+    // --- KẾT THÚC SỬA LỖI VÀ CẢI TIẾN MINIMAP ---
   }
 
   openStore() {
