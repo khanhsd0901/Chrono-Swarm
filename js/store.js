@@ -5,7 +5,6 @@ class StoreSystem {
     constructor() {
         this.playerProgression = null;
         this.storeItems = this.initializeStoreItems();
-        this.chronoPassData = this.initializeChronoPass();
         this.ownedItems = new Set();
         this.dailyAdCount = 0;
         this.lastAdDate = '';
@@ -639,85 +638,9 @@ class StoreSystem {
         };
     }
 
-    initializeChronoPass() {
-        return {
-            currentTier: 0,
-            maxTier: 50,
-            hasPremium: false,
-            premiumPrice: 1000, // Chrono-Shards
-            experience: 0,
-            experiencePerTier: 100,
-            season: 1,
-            seasonEndDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
-            
-            tiers: this.generateChronoPassTiers()
-        };
-    }
 
-    generateChronoPassTiers() {
-        const tiers = [];
-        
-        for (let i = 0; i < 50; i++) {
-            const tier = {
-                tier: i + 1,
-                freeReward: this.generateFreeReward(i),
-                premiumReward: this.generatePremiumReward(i)
-            };
-            tiers.push(tier);
-        }
-        
-        return tiers;
-    }
 
-    generateFreeReward(tierIndex) {
-        if (tierIndex % 5 === 4) { // Every 5th tier
-            return {
-                type: 'shards',
-                amount: 50 + tierIndex * 5,
-                name: `${50 + tierIndex * 5} Chrono-Shards`,
-                icon: '💎'
-            };
-        } else if (tierIndex % 10 === 9) { // Every 10th tier
-            return {
-                type: 'cosmetic',
-                id: `free_cosmetic_${tierIndex}`,
-                name: 'Free Cosmetic',
-                icon: '✨'
-            };
-        } else {
-            return {
-                type: 'xp_boost',
-                amount: 10,
-                name: '10% XP Boost',
-                icon: '⚡'
-            };
-        }
-    }
 
-    generatePremiumReward(tierIndex) {
-        if (tierIndex % 3 === 2) { // Every 3rd tier
-            return {
-                type: 'shards',
-                amount: 100 + tierIndex * 10,
-                name: `${100 + tierIndex * 10} Chrono-Shards`,
-                icon: '💎'
-            };
-        } else if (tierIndex % 7 === 6) { // Every 7th tier
-            return {
-                type: 'exclusive_cosmetic',
-                id: `premium_cosmetic_${tierIndex}`,
-                name: 'Exclusive Evolution',
-                icon: '👑'
-            };
-        } else {
-            return {
-                type: 'ability_boost',
-                amount: 5,
-                name: '5% Ability Cooldown Reduction',
-                icon: '🔮'
-            };
-        }
-    }
 
     getItemsByCategory(category) {
         return this.storeItems[category] || [];
@@ -808,7 +731,7 @@ class StoreSystem {
         return true;
     }
 
-    // Chrono-Pass System
+    // Store utilities
     getChronoPassData() {
         return {
             currentTier: this.chronoPassData.currentTier,
@@ -984,8 +907,7 @@ class StoreSystem {
                 this.dailyAdCount++;
                 this.saveToStorage();
                 
-                // Add chrono-pass experience
-                this.addChronoPassExperience(10);
+                // Chrono-pass removed
                 
                 resolve({
                     success: true,
@@ -1028,7 +950,7 @@ class StoreSystem {
             this.playerProgression.addChronoShards(bonusShards);
         }
         
-        this.addChronoPassExperience(5);
+        // Chrono-pass removed
         
         if (window.uiSystem) {
             window.uiSystem.showNotification(`Daily bonus: +${bonusShards} Chrono-Shards!`, 'success');
@@ -1093,7 +1015,7 @@ class StoreSystem {
             completionPercentage: Math.floor((this.ownedItems.size / this.getAllItems().length) * 100),
             totalSpent: this.calculateTotalSpent(),
             favoriteCategory: this.getFavoriteCategory(),
-            chronoPassProgress: this.getChronoPassData(),
+            // chronoPassProgress: removed,
             adStatistics: this.getAdInfo()
         };
     }
@@ -1108,9 +1030,7 @@ class StoreSystem {
             }
         });
         
-        if (this.chronoPassData.hasPremium) {
-            total += this.chronoPassData.premiumPrice;
-        }
+        // Chrono-pass premium cost removed
         
         return total;
     }
@@ -1142,7 +1062,7 @@ class StoreSystem {
     saveToStorage() {
         const storeData = {
             ownedItems: Array.from(this.ownedItems),
-            chronoPassData: this.chronoPassData,
+            // chronoPassData: removed,
             dailyAdCount: this.dailyAdCount,
             lastAdDate: this.lastAdDate
         };
@@ -1186,7 +1106,7 @@ class StoreSystem {
         return {
             storeItems: this.storeItems,
             ownedItems: Array.from(this.ownedItems),
-            chronoPassData: this.chronoPassData,
+            // chronoPassData: removed,
             statistics: this.getStoreStatistics()
         };
     }
@@ -1206,7 +1126,7 @@ class StoreSystem {
     // Reset and Cleanup
     resetStore() {
         this.ownedItems.clear();
-        this.chronoPassData = this.initializeChronoPass();
+        // Chrono-pass reset removed
         this.dailyAdCount = 0;
         this.lastAdDate = '';
         
@@ -1228,8 +1148,7 @@ class StoreSystem {
                 this.ownedItems.add(item.id);
             });
             
-            this.chronoPassData.hasPremium = true;
-            this.chronoPassData.currentTier = this.chronoPassData.maxTier;
+            // Chrono-pass debug removed
             
             if (this.playerProgression) {
                 this.playerProgression.addChronoShards(10000);
@@ -1243,8 +1162,7 @@ class StoreSystem {
 
     simulateProgress() {
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            // Simulate chrono-pass progress
-            this.addChronoPassExperience(500);
+            // Chrono-pass simulation removed
             
             // Add some random items
             const randomItems = this.getAllItems().slice(0, 5);

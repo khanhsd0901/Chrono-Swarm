@@ -34,7 +34,7 @@ class UISystem {
             playerName: document.getElementById('playerName'),
             playButton: document.getElementById('playButton'),
             storeButton: document.getElementById('storeButton'),
-            chronoPassButton: document.getElementById('chronoPassButton'),
+
             settingsButton: document.getElementById('settingsButton'),
             playerLevel: document.getElementById('playerLevel'),
             chronoShards: document.getElementById('chronoShards'),
@@ -51,18 +51,15 @@ class UISystem {
             
             // Modals
             storeModal: document.getElementById('storeModal'),
-            chronoPassModal: document.getElementById('chronoPassModal'),
             settingsModal: document.getElementById('settingsModal'),
             closeStore: document.getElementById('closeStore'),
-            closeChronoPass: document.getElementById('closeChronoPass'),
             closeSettings: document.getElementById('closeSettings'),
             
             // Store
             storeItems: document.getElementById('storeItems'),
             storeTabs: document.querySelectorAll('.store-tab'),
             
-            // Chrono-Pass
-            passTierTrack: document.getElementById('passTierTrack'),
+
             
             // Settings
             masterVolume: document.getElementById('masterVolume'),
@@ -98,12 +95,12 @@ class UISystem {
         // Main Menu
         this.elements.playButton?.addEventListener('click', () => this.startGame());
         this.elements.storeButton?.addEventListener('click', () => this.openStore());
-        this.elements.chronoPassButton?.addEventListener('click', () => this.openChronoPass());
+
         this.elements.settingsButton?.addEventListener('click', () => this.openSettings());
         
         // Modal close buttons
         this.elements.closeStore?.addEventListener('click', () => this.closeModal('store'));
-        this.elements.closeChronoPass?.addEventListener('click', () => this.closeModal('chronoPass'));
+
         this.elements.closeSettings?.addEventListener('click', () => this.closeModal('settings'));
         
         // Store tabs
@@ -590,47 +587,7 @@ class UISystem {
         }
     }
 
-    openChronoPass() {
-        this.openModal('chronoPass');
-        this.refreshChronoPass();
-        
-        if (window.audioSystem) {
-            window.audioSystem.playUISound('open');
-        }
-    }
 
-    refreshChronoPass() {
-        if (!this.elements.passTierTrack || !window.storeSystem) return;
-        
-        this.elements.passTierTrack.innerHTML = '';
-        
-        const passData = window.storeSystem.getChronoPassData();
-        
-        passData.tiers.forEach((tier, index) => {
-            const tierElement = document.createElement('div');
-            tierElement.className = 'pass-tier';
-            
-            const isUnlocked = passData.currentTier >= index;
-            const isCurrent = passData.currentTier === index;
-            
-            if (isUnlocked) tierElement.classList.add('unlocked');
-            if (isCurrent) tierElement.classList.add('current');
-            
-            tierElement.innerHTML = `
-                <div class="tier-number">${index + 1}</div>
-                <div class="tier-rewards">
-                    <div class="free-reward">
-                        <span class="reward-name">${tier.freeReward.name}</span>
-                    </div>
-                    <div class="premium-reward ${passData.hasPremium ? 'available' : 'locked'}">
-                        <span class="reward-name">${tier.premiumReward.name}</span>
-                    </div>
-                </div>
-            `;
-            
-            this.elements.passTierTrack.appendChild(tierElement);
-        });
-    }
 
     openSettings() {
         this.openModal('settings');
