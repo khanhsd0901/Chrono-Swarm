@@ -4,14 +4,19 @@
 class Entity {
     constructor(x, y) {
         this.id = GameUtils.generateId();
-        this.position = new Vector2(x, y);
+        // Validate position parameters
+        const safeX = (typeof x === 'number' && !isNaN(x)) ? x : 0;
+        const safeY = (typeof y === 'number' && !isNaN(y)) ? y : 0;
+        this.position = new Vector2(safeX, safeY);
         this.velocity = new Vector2(0, 0);
         this.isAlive = true;
         this.age = 0;
     }
 
     update(deltaTime) {
-        this.age += deltaTime;
+        // Validate deltaTime
+        const safeDeltaTime = (typeof deltaTime === 'number' && !isNaN(deltaTime)) ? deltaTime : 0;
+        this.age += safeDeltaTime;
     }
 
     render(ctx, camera) {
@@ -26,10 +31,12 @@ class Entity {
 class Cell extends Entity {
     constructor(x, y, mass, color, parentPlayer) {
         super(x, y);
-        this.mass = mass;
-        this.color = color.clone();
+        // Validate mass parameter
+        this.mass = (typeof mass === 'number' && !isNaN(mass) && mass > 0) ? mass : GameConstants.MIN_CELL_MASS;
+        // Validate color parameter
+        this.color = (color && typeof color.clone === 'function') ? color.clone() : new Color(255, 255, 255, 1);
         this.parentPlayer = parentPlayer;
-        this.radius = GameUtils.calculateMassRadius(mass);
+        this.radius = GameUtils.calculateMassRadius(this.mass);
         this.trail = [];
         this.maxTrailLength = 10;
         this.glowIntensity = 0;
@@ -152,6 +159,12 @@ class Cell extends Entity {
             screenPos.x, screenPos.y, 0,
             screenPos.x, screenPos.y, screenRadius
         );
+        
+        // Validate color before using in gradient
+        if (!this.color || typeof this.color.r !== 'number' || isNaN(this.color.r)) {
+            console.warn('Invalid cell color, using default');
+            this.color = new Color(255, 255, 255, 1);
+        }
         
         const pulseIntensity = Math.sin(this.pulsePhase) * 0.1 + 0.9;
         const glowColor = new Color(this.color.r, this.color.g, this.color.b, 0.8 * pulseIntensity);
@@ -396,6 +409,12 @@ class ChronoMatter extends Entity {
             screenPos.x, screenPos.y, 0,
             screenPos.x, screenPos.y, finalRadius * 2 * glowMultiplier
         );
+        
+        // Validate color before using in gradient
+        if (!this.color || typeof this.color.r !== 'number' || isNaN(this.color.r)) {
+            console.warn('Invalid matter color, using default');
+            this.color = new Color(100, 150, 255, 1); // Default blue matter color
+        }
         
         if (this.massMultiplier > 1) {
             // Special colors for enhanced matter

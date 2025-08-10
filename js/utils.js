@@ -3,49 +3,112 @@
 
 class Vector2 {
     constructor(x = 0, y = 0) {
-        this.x = x;
-        this.y = y;
+        // Validate and sanitize input parameters
+        this.x = (typeof x === 'number' && !isNaN(x)) ? x : 0;
+        this.y = (typeof y === 'number' && !isNaN(y)) ? y : 0;
     }
 
     static distance(a, b) {
+        // Validate input vectors
+        if (!a || !b || typeof a.x !== 'number' || typeof b.x !== 'number') {
+            console.warn('Vector2.distance: Invalid vectors provided');
+            return 0;
+        }
         return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
     }
 
     static magnitude(v) {
+        // Validate input vector
+        if (!v || typeof v.x !== 'number' || typeof v.y !== 'number') {
+            console.warn('Vector2.magnitude: Invalid vector provided');
+            return 0;
+        }
         return Math.sqrt(v.x ** 2 + v.y ** 2);
     }
 
     static normalize(v) {
+        // Validate input vector
+        if (!v || typeof v.x !== 'number' || typeof v.y !== 'number') {
+            console.warn('Vector2.normalize: Invalid vector provided');
+            return new Vector2(0, 0);
+        }
         const mag = Vector2.magnitude(v);
         if (mag === 0) return new Vector2(0, 0);
         return new Vector2(v.x / mag, v.y / mag);
     }
 
     static subtract(a, b) {
+        // Validate input vectors
+        if (!a || !b || typeof a.x !== 'number' || typeof b.x !== 'number') {
+            console.warn('Vector2.subtract: Invalid vectors provided');
+            return new Vector2(0, 0);
+        }
         return new Vector2(a.x - b.x, a.y - b.y);
     }
 
     static add(a, b) {
+        // Validate input vectors
+        if (!a || !b || typeof a.x !== 'number' || typeof b.x !== 'number') {
+            console.warn('Vector2.add: Invalid vectors provided');
+            return new Vector2(0, 0);
+        }
         return new Vector2(a.x + b.x, a.y + b.y);
     }
 
     static multiply(v, scalar) {
+        // Validate input vector and scalar
+        if (!v || typeof v.x !== 'number' || typeof v.y !== 'number') {
+            console.warn('Vector2.multiply: Invalid vector provided');
+            return new Vector2(0, 0);
+        }
+        if (typeof scalar !== 'number' || isNaN(scalar)) {
+            console.warn('Vector2.multiply: Invalid scalar provided');
+            scalar = 0;
+        }
         return new Vector2(v.x * scalar, v.y * scalar);
     }
 
     static dot(a, b) {
+        // Validate input vectors
+        if (!a || !b || typeof a.x !== 'number' || typeof b.x !== 'number') {
+            console.warn('Vector2.dot: Invalid vectors provided');
+            return 0;
+        }
         return a.x * b.x + a.y * b.y;
     }
 
     static angle(v) {
+        // Validate input vector
+        if (!v || typeof v.x !== 'number' || typeof v.y !== 'number') {
+            console.warn('Vector2.angle: Invalid vector provided');
+            return 0;
+        }
         return Math.atan2(v.y, v.x);
     }
 
     static fromAngle(angle, magnitude = 1) {
+        // Validate input parameters
+        if (typeof angle !== 'number' || isNaN(angle)) {
+            console.warn('Vector2.fromAngle: Invalid angle provided');
+            angle = 0;
+        }
+        if (typeof magnitude !== 'number' || isNaN(magnitude)) {
+            console.warn('Vector2.fromAngle: Invalid magnitude provided');
+            magnitude = 1;
+        }
         return new Vector2(Math.cos(angle) * magnitude, Math.sin(angle) * magnitude);
     }
 
     static lerp(a, b, t) {
+        // Validate input vectors
+        if (!a || !b || typeof a.x !== 'number' || typeof b.x !== 'number') {
+            console.warn('Vector2.lerp: Invalid vectors provided');
+            return new Vector2(0, 0);
+        }
+        if (typeof t !== 'number' || isNaN(t)) {
+            console.warn('Vector2.lerp: Invalid interpolation value');
+            t = 0;
+        }
         return new Vector2(
             a.x + (b.x - a.x) * t,
             a.y + (b.y - a.y) * t
@@ -66,7 +129,13 @@ class Color {
     }
 
     toString() {
-        return `rgba(${Math.floor(this.r)}, ${Math.floor(this.g)}, ${Math.floor(this.b)}, ${this.a})`;
+        // Validate color components and provide defaults for invalid values
+        const r = (typeof this.r === 'number' && !isNaN(this.r)) ? Math.floor(this.r) : 0;
+        const g = (typeof this.g === 'number' && !isNaN(this.g)) ? Math.floor(this.g) : 0;
+        const b = (typeof this.b === 'number' && !isNaN(this.b)) ? Math.floor(this.b) : 0;
+        const a = (typeof this.a === 'number' && !isNaN(this.a)) ? this.a : 1;
+        
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
     }
 
     static fromHex(hex) {
@@ -77,11 +146,37 @@ class Color {
     }
 
     static lerp(a, b, t) {
+        // Validate input parameters
+        if (!a || !b || typeof a !== 'object' || typeof b !== 'object') {
+            console.warn('Color.lerp: Invalid color objects provided', { a, b });
+            return new Color(255, 255, 255, 1); // Default white color
+        }
+        
+        if (typeof t !== 'number' || isNaN(t)) {
+            console.warn('Color.lerp: Invalid interpolation value', t);
+            t = 0;
+        }
+        
+        // Ensure color components have valid defaults
+        const aColor = {
+            r: (typeof a.r === 'number' && !isNaN(a.r)) ? a.r : 255,
+            g: (typeof a.g === 'number' && !isNaN(a.g)) ? a.g : 255,
+            b: (typeof a.b === 'number' && !isNaN(a.b)) ? a.b : 255,
+            a: (typeof a.a === 'number' && !isNaN(a.a)) ? a.a : 1
+        };
+        
+        const bColor = {
+            r: (typeof b.r === 'number' && !isNaN(b.r)) ? b.r : 255,
+            g: (typeof b.g === 'number' && !isNaN(b.g)) ? b.g : 255,
+            b: (typeof b.b === 'number' && !isNaN(b.b)) ? b.b : 255,
+            a: (typeof b.a === 'number' && !isNaN(b.a)) ? b.a : 1
+        };
+        
         return new Color(
-            a.r + (b.r - a.r) * t,
-            a.g + (b.g - a.g) * t,
-            a.b + (b.b - a.b) * t,
-            a.a + (b.a - a.a) * t
+            aColor.r + (bColor.r - aColor.r) * t,
+            aColor.g + (bColor.g - aColor.g) * t,
+            aColor.b + (bColor.b - aColor.b) * t,
+            aColor.a + (bColor.a - aColor.a) * t
         );
     }
 
@@ -90,6 +185,11 @@ class Color {
     }
 
     static hslToRgb(h, s, l) {
+        // Validate input parameters
+        h = (typeof h === 'number' && !isNaN(h)) ? h : 0;
+        s = (typeof s === 'number' && !isNaN(s)) ? s : 0;
+        l = (typeof l === 'number' && !isNaN(l)) ? l : 50;
+        
         h /= 360;
         s /= 100;
         l /= 100;
@@ -105,6 +205,11 @@ class Color {
     }
 
     static hueToRgb(p, q, t) {
+        // Validate input parameters
+        if (typeof p !== 'number' || isNaN(p)) p = 0;
+        if (typeof q !== 'number' || isNaN(q)) q = 0;
+        if (typeof t !== 'number' || isNaN(t)) t = 0;
+        
         if (t < 0) t += 1;
         if (t > 1) t -= 1;
         if (t < 1/6) return p + (q - p) * 6 * t;
@@ -227,7 +332,12 @@ class GameUtils {
     }
 
     static generateHSLColor(hue, saturation = 70, lightness = 50) {
-        return Color.hslToRgb(hue, saturation, lightness);
+        // Validate parameters
+        const safeHue = (typeof hue === 'number' && !isNaN(hue)) ? hue % 360 : 0;
+        const safeSaturation = (typeof saturation === 'number' && !isNaN(saturation)) ? Math.max(0, Math.min(100, saturation)) : 70;
+        const safeLightness = (typeof lightness === 'number' && !isNaN(lightness)) ? Math.max(0, Math.min(100, lightness)) : 50;
+        
+        return Color.hslToRgb(safeHue, safeSaturation, safeLightness);
     }
 
     static getPlayerColor(index) {
@@ -250,6 +360,12 @@ class GameUtils {
     }
 
     static calculateMassRadius(mass) {
+        // Validate mass parameter
+        if (typeof mass !== 'number' || isNaN(mass) || mass <= 0) {
+            console.warn('GameUtils.calculateMassRadius: Invalid mass provided, using default');
+            mass = GameConstants.MIN_CELL_MASS || 10;
+        }
+        
         // Base radius scales with square root of mass for realistic area scaling
         return Math.sqrt(mass / Math.PI) * 2;
     }
