@@ -2190,7 +2190,17 @@ class GameEngine {
             'energy_cascade',
             'temporal_storm',
             'quantum_entanglement',
-            'chrono_plague'
+            'chrono_plague',
+            // Enhanced creative events
+            'quantum_split',
+            'mass_vortex',
+            'chrono_explosion',
+            'reality_warp',
+            'phantom_invasion',
+            'mass_fusion',
+            'temporal_paradox',
+            'quantum_entanglement_network',
+            'chrono_storm_enhanced'
         ];
         
         const randomEvent = events[Math.floor(Math.random() * events.length)];
@@ -2346,6 +2356,52 @@ class GameEngine {
             'chrono_plague': {
                 title: '🦠 CHRONO-PLAGUE OUTBREAK! 🦠',
                 message: 'A contagious effect spreads between players!',
+                type: 'error'
+            },
+            // Enhanced creative events
+            'quantum_split': {
+                title: '⚛️ QUANTUM SPLIT PHENOMENON! ⚛️',
+                message: 'Players split into quantum duplicates! Reality fragments!',
+                type: 'warning'
+            },
+            'mass_vortex': {
+                title: '🌪️ MASS VORTEX FORMING! 🌪️',
+                message: 'Swirling zones of mass collection appear!',
+                type: 'info'
+            },
+            'chrono_explosion': {
+                title: '💥 CHRONO EXPLOSION! 💥',
+                message: 'Mass-based chain reactions shake the arena!',
+                type: 'error'
+            },
+            'reality_warp': {
+                title: '🌀 REALITY WARP FIELD! 🌀',
+                message: 'Physics behave differently in warped zones!',
+                type: 'warning'
+            },
+            'phantom_invasion': {
+                title: '👻 PHANTOM INVASION! 👻',
+                message: 'Ghostly entities hunt the largest players!',
+                type: 'error'
+            },
+            'mass_fusion': {
+                title: '🔗 MASS FUSION ZONES! 🔗',
+                message: 'Players can temporarily merge in fusion zones!',
+                type: 'info'
+            },
+            'temporal_paradox': {
+                title: '⏰ TEMPORAL PARADOX! ⏰',
+                message: 'Past and future collide! Time anomalies appear!',
+                type: 'warning'
+            },
+            'quantum_entanglement_network': {
+                title: '🔗 QUANTUM ENTANGLEMENT NETWORK! 🔗',
+                message: 'Players linked in complex quantum relationships!',
+                type: 'info'
+            },
+            'chrono_storm_enhanced': {
+                title: '🌩️ ENHANCED CHRONO STORM! 🌩️',
+                message: 'Multiple storm patterns create chaos!',
                 type: 'error'
             }
         };
@@ -2526,6 +2582,52 @@ class GameEngine {
                 event.duration = 25000; // 25 seconds
                 this.createChronoPlague(event);
                 break;
+                
+            // Enhanced creative events
+            case 'quantum_split':
+                event.duration = 15000; // 15 seconds
+                this.createQuantumSplit(event);
+                break;
+                
+            case 'mass_vortex':
+                event.duration = 20000; // 20 seconds
+                this.createMassVortex(event);
+                break;
+                
+            case 'chrono_explosion':
+                event.duration = 12000; // 12 seconds
+                this.createChronoExplosion(event);
+                break;
+                
+            case 'reality_warp':
+                event.duration = 18000; // 18 seconds
+                this.createRealityWarp(event);
+                break;
+                
+            case 'phantom_invasion':
+                event.duration = 25000; // 25 seconds
+                this.createPhantomInvasion(event);
+                break;
+                
+            case 'mass_fusion':
+                event.duration = 15000; // 15 seconds
+                this.createMassFusion(event);
+                break;
+                
+            case 'temporal_paradox':
+                event.duration = 20000; // 20 seconds
+                this.createTemporalParadox(event);
+                break;
+                
+            case 'quantum_entanglement_network':
+                event.duration = 30000; // 30 seconds
+                this.createQuantumEntanglementNetwork(event);
+                break;
+                
+            case 'chrono_storm_enhanced':
+                event.duration = 25000; // 25 seconds
+                this.createChronoStorm(event);
+                break;
         }
         
         this.activeEvents.push(event);
@@ -2703,6 +2805,43 @@ class GameEngine {
                 break;
             case 'chrono_plague':
                 this.updateChronoPlague(event, deltaTime);
+                break;
+                
+            // Enhanced creative events
+            case 'quantum_split':
+                this.updateQuantumSplit(event, deltaTime);
+                break;
+                
+            case 'mass_vortex':
+                this.updateMassVortex(event, deltaTime);
+                break;
+                
+            case 'chrono_explosion':
+                this.updateChronoExplosion(event, deltaTime);
+                break;
+                
+            case 'reality_warp':
+                this.updateRealityWarp(event, deltaTime);
+                break;
+                
+            case 'phantom_invasion':
+                this.updatePhantomInvasion(event, deltaTime);
+                break;
+                
+            case 'mass_fusion':
+                this.updateMassFusion(event, deltaTime);
+                break;
+                
+            case 'temporal_paradox':
+                this.updateTemporalParadox(event, deltaTime);
+                break;
+                
+            case 'quantum_entanglement_network':
+                this.updateQuantumEntanglementNetwork(event, deltaTime);
+                break;
+                
+            case 'chrono_storm_enhanced':
+                this.updateChronoStorm(event, deltaTime);
                 break;
         }
     }
@@ -2906,37 +3045,24 @@ class GameEngine {
     }
     
     updateZoneEffects(deltaTime) {
+        // Update zone effects for all players
         const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
         
         allPlayers.forEach(player => {
             const currentZone = this.getPlayerZone(player);
-            const playerId = player.id;
-            
-            // Clear previous zone effects
-            this.currentZones.set(playerId, currentZone);
             
             if (currentZone) {
-                const effects = currentZone.zone.effects;
-                
-                // Apply zone effects to player
-                if (effects.speedMultiplier) {
-                    player.zoneSpeedMultiplier = effects.speedMultiplier;
+                // Apply zone-specific effects
+                if (currentZone.zone.effects.speedMultiplier) {
+                    player.zoneSpeedMultiplier = currentZone.zone.effects.speedMultiplier;
                 }
                 
-                if (effects.damageMultiplier) {
-                    player.zoneDamageMultiplier = effects.damageMultiplier;
+                if (currentZone.zone.effects.damageMultiplier) {
+                    player.zoneDamageMultiplier = currentZone.zone.effects.damageMultiplier;
                 }
                 
-                if (effects.energyRegeneration && Math.random() < 0.02) {
-                    // Slowly regenerate mass in energy fields
-                    player.cells.forEach(cell => {
-                        cell.mass = Math.min(cell.mass * 1.002, 1000);
-                        cell.radius = Math.sqrt(cell.mass / Math.PI) * 2;
-                    });
-                }
-                
-                if (effects.voidDamage && Math.random() < 0.01) {
-                    // Slowly damage in void zones
+                if (currentZone.zone.effects.voidDamage) {
+                    // Void damage effect
                     player.cells.forEach(cell => {
                         cell.mass *= 0.998;
                         if (cell.mass < 10) {
@@ -2945,11 +3071,11 @@ class GameEngine {
                     });
                 }
                 
-                // Show zone entry notification
+                // Show zone entry notification only when changing zones
                 if (!player.lastZone || player.lastZone !== currentZone.key) {
                     if (window.uiSystem) {
                         window.uiSystem.showNotification(
-                            `🌍 Entering ${currentZone.zone.name}`, 
+                            `🌍 ${currentZone.zone.name}`, 
                             'info'
                         );
                     }
@@ -2996,6 +3122,43 @@ class GameEngine {
                 ctx.fillText(zone.name, centerScreen.x, centerScreen.y);
             }
         });
+    }
+
+    // Add missing performance monitoring method
+    updatePerformanceMonitoring() {
+        // Monitor FPS and performance
+        if (this.fps < 30) {
+            // Reduce particle effects and complexity when FPS is low
+            if (window.particleSystem) {
+                window.particleSystem.setMaxParticles(100);
+            }
+        } else if (this.fps > 50) {
+            // Restore full effects when performance is good
+            if (window.particleSystem) {
+                window.particleSystem.setMaxParticles(500);
+            }
+        }
+        
+        // Monitor memory usage (if available)
+        if (performance.memory) {
+            const memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024; // MB
+            if (memoryUsage > 100) {
+                // Clean up if memory usage is high
+                this.cleanupUnusedResources();
+            }
+        }
+    }
+
+    cleanupUnusedResources() {
+        // Clean up old particles
+        if (window.particleSystem) {
+            window.particleSystem.cleanup();
+        }
+        
+        // Clean up old chrono matter
+        if (this.chronoMatter.length > GameConstants.MAX_MATTER_COUNT * 1.5) {
+            this.chronoMatter = this.chronoMatter.slice(0, GameConstants.MAX_MATTER_COUNT);
+        }
     }
 }
 
@@ -3397,5 +3560,552 @@ GameEngine.prototype.updateChronoPlague = function(event, deltaTime) {
                 }
             });
         }
+    });
+};
+
+// Enhanced Creative Gameplay Events
+
+// Quantum Split - Players split into quantum duplicates
+GameEngine.prototype.createQuantumSplit = function(event) {
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    event.quantumDuplicates = [];
+    
+    allPlayers.forEach(player => {
+        if (player.cells.length < GameConstants.MAX_CELLS / 2) {
+            const duplicate = {
+                originalPlayer: player,
+                cells: player.cells.map(cell => ({
+                    position: new Vector2(
+                        cell.position.x + MathUtils.random(-100, 100),
+                        cell.position.y + MathUtils.random(-100, 100)
+                    ),
+                    mass: cell.mass * 0.6,
+                    radius: cell.radius * 0.8,
+                    color: cell.color + '80', // Semi-transparent
+                    isQuantum: true
+                }))
+            };
+            event.quantumDuplicates.push(duplicate);
+        }
+    });
+};
+
+// Mass Vortex - Creates swirling mass collection zones
+GameEngine.prototype.createMassVortex = function(event) {
+    event.vortices = [];
+    for (let i = 0; i < 3; i++) {
+        const vortex = {
+            position: new Vector2(
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING),
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING)
+            ),
+            radius: MathUtils.random(150, 250),
+            strength: MathUtils.random(0.5, 1.5),
+            rotationSpeed: MathUtils.random(0.5, 2.0)
+        };
+        event.vortices.push(vortex);
+    }
+};
+
+// Chrono Explosion - Mass-based chain reaction
+GameEngine.prototype.createChronoExplosion = function(event) {
+    event.explosionCenters = [];
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    // Create explosion at largest player's position
+    if (allPlayers.length > 0) {
+        const largestPlayer = allPlayers.reduce((largest, current) => 
+            current.getTotalMass() > largest.getTotalMass() ? current : largest
+        );
+        
+        event.explosionCenters.push({
+            position: largestPlayer.getCenterPosition(),
+            radius: 300,
+            force: largestPlayer.getTotalMass() * 0.1
+        });
+    }
+};
+
+// Reality Warp - Arena geometry changes
+GameEngine.prototype.createRealityWarp = function(event) {
+    event.warpActive = true;
+    event.warpIntensity = 1.0;
+    event.warpFrequency = 100; // milliseconds
+    
+    // Create warped zones where physics behave differently
+    event.warpZones = [];
+    for (let i = 0; i < 4; i++) {
+        const warpZone = {
+            position: new Vector2(
+                MathUtils.random(GameConstants.ARENA_WIDTH * 0.2, GameConstants.ARENA_WIDTH * 0.8),
+                MathUtils.random(GameConstants.ARENA_HEIGHT * 0.2, GameConstants.ARENA_HEIGHT * 0.8)
+            ),
+            radius: MathUtils.random(200, 300),
+            effect: MathUtils.randomChoice(['gravity', 'time', 'mass', 'speed'])
+        };
+        event.warpZones.push(warpZone);
+    }
+};
+
+// Phantom Invasion - Ghost players appear and hunt
+GameEngine.prototype.createPhantomInvasion = function(event) {
+    event.phantoms = [];
+    const phantomCount = Math.min(8, Math.floor(this.aiPlayers.length * 0.5));
+    
+    for (let i = 0; i < phantomCount; i++) {
+        const phantom = {
+            position: new Vector2(
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING),
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING)
+            ),
+            target: null,
+            speed: MathUtils.random(120, 200),
+            radius: MathUtils.random(20, 35),
+            damage: MathUtils.random(3, 8),
+            behavior: MathUtils.randomChoice(['hunter', 'stalker', 'berserker'])
+        };
+        event.phantoms.push(phantom);
+    }
+};
+
+// Mass Fusion - Players can temporarily merge
+GameEngine.prototype.createMassFusion = function(event) {
+    event.fusionActive = true;
+    event.fusionRadius = 150;
+    event.fusionDuration = 10000; // 10 seconds
+    
+    // Create fusion zones where players can merge
+    event.fusionZones = [];
+    for (let i = 0; i < 5; i++) {
+        const fusionZone = {
+            position: new Vector2(
+                MathUtils.random(GameConstants.ARENA_WIDTH * 0.1, GameConstants.ARENA_WIDTH * 0.9),
+                MathUtils.random(GameConstants.ARENA_HEIGHT * 0.1, GameConstants.ARENA_HEIGHT * 0.9)
+            ),
+            radius: 100,
+            active: true
+        };
+        event.fusionZones.push(fusionZone);
+    }
+};
+
+// Temporal Paradox - Past and future collide
+GameEngine.prototype.createTemporalParadox = function(event) {
+    event.paradoxActive = true;
+    event.timeAnomalies = [];
+    
+    // Create time anomalies that affect player movement
+    for (let i = 0; i < 6; i++) {
+        const anomaly = {
+            position: new Vector2(
+                MathUtils.random(GameConstants.ARENA_WIDTH * 0.15, GameConstants.ARENA_WIDTH * 0.85),
+                MathUtils.random(GameConstants.ARENA_HEIGHT * 0.15, GameConstants.ARENA_HEIGHT * 0.85)
+            ),
+            radius: MathUtils.random(120, 180),
+            effect: MathUtils.randomChoice(['slow', 'fast', 'reverse', 'chaos']),
+            intensity: MathUtils.random(0.5, 2.0)
+        };
+        event.timeAnomalies.push(anomaly);
+    }
+};
+
+// Quantum Entanglement Network - Players linked in complex ways
+GameEngine.prototype.createQuantumEntanglementNetwork = function(event) {
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    event.entanglementGroups = [];
+    
+    // Create groups of 3-4 entangled players
+    const groupSize = MathUtils.random(3, 4);
+    for (let i = 0; i < allPlayers.length; i += groupSize) {
+        const group = allPlayers.slice(i, i + groupSize);
+        if (group.length >= 2) {
+            event.entanglementGroups.push({
+                players: group,
+                linkStrength: MathUtils.random(0.3, 0.8),
+                sharedAbilities: MathUtils.randomChoice(['speed', 'mass', 'vision', 'stealth'])
+            });
+        }
+    }
+};
+
+// Chrono Storm - Dynamic weather-like effects
+GameEngine.prototype.createChronoStorm = function(event) {
+    event.stormActive = true;
+    event.stormIntensity = 1.0;
+    event.stormPatterns = [];
+    
+    // Create different storm patterns
+    const patterns = ['cyclone', 'lightning', 'rain', 'wind', 'fog'];
+    patterns.forEach(pattern => {
+        event.stormPatterns.push({
+            type: pattern,
+            position: new Vector2(
+                MathUtils.random(0, GameConstants.ARENA_WIDTH),
+                MathUtils.random(0, GameConstants.ARENA_HEIGHT)
+            ),
+            radius: MathUtils.random(300, 500),
+            intensity: MathUtils.random(0.5, 1.5)
+        });
+    });
+};
+
+// Update methods for new events
+GameEngine.prototype.updateQuantumSplit = function(event, deltaTime) {
+    if (!event.quantumDuplicates) return;
+    
+    event.quantumDuplicates.forEach(duplicate => {
+        if (duplicate.originalPlayer && duplicate.originalPlayer.isAlive) {
+            // Update duplicate positions and behaviors
+            duplicate.cells.forEach((duplicateCell, index) => {
+                if (duplicate.originalPlayer.cells[index]) {
+                    const originalCell = duplicate.originalPlayer.cells[index];
+                    // Mirror some of the original's behavior
+                    duplicateCell.position.x = originalCell.position.x + MathUtils.random(-50, 50);
+                    duplicateCell.position.y = originalCell.position.y + MathUtils.random(-50, 50);
+                }
+            });
+        }
+    });
+};
+
+GameEngine.prototype.updateMassVortex = function(event, deltaTime) {
+    if (!event.vortices) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.vortices.forEach(vortex => {
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const distance = Vector2.distance(vortex.position, cell.position);
+                if (distance < vortex.radius) {
+                    // Apply vortex force
+                    const direction = Vector2.subtract(vortex.position, cell.position);
+                    const force = (vortex.radius - distance) / vortex.radius * vortex.strength;
+                    const normalizedDir = Vector2.normalize(direction);
+                    
+                    cell.position = Vector2.add(cell.position, 
+                        Vector2.multiply(normalizedDir, force * deltaTime / 1000));
+                }
+            });
+        });
+    });
+};
+
+GameEngine.prototype.updateChronoExplosion = function(event, deltaTime) {
+    if (!event.explosionCenters) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.explosionCenters.forEach(explosion => {
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const distance = Vector2.distance(explosion.position, cell.position);
+                if (distance < explosion.radius) {
+                    // Apply explosion force
+                    const direction = Vector2.subtract(cell.position, explosion.position);
+                    const force = (explosion.radius - distance) / explosion.radius * explosion.force;
+                    const normalizedDir = Vector2.normalize(direction);
+                    
+                    cell.position = Vector2.add(cell.position, 
+                        Vector2.multiply(normalizedDir, force * deltaTime / 1000));
+                }
+            });
+        });
+    });
+};
+
+GameEngine.prototype.updateRealityWarp = function(event, deltaTime) {
+    if (!event.warpZones || !event.warpActive) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.warpZones.forEach(warpZone => {
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const distance = Vector2.distance(warpZone.position, cell.position);
+                if (distance < warpZone.radius) {
+                    // Apply warp effects
+                    switch (warpZone.effect) {
+                        case 'gravity':
+                            cell.mass *= 1.001; // Mass increases in gravity zones
+                            break;
+                        case 'time':
+                            // Time dilation effect
+                            cell.velocity = Vector2.multiply(cell.velocity, 0.95);
+                            break;
+                        case 'mass':
+                            cell.mass *= 0.999; // Mass decreases in mass zones
+                            break;
+                        case 'speed':
+                            cell.velocity = Vector2.multiply(cell.velocity, 1.05);
+                            break;
+                    }
+                    
+                    // Update radius based on mass
+                    cell.radius = GameUtils.calculateMassRadius(cell.mass);
+                }
+            });
+        });
+    });
+};
+
+GameEngine.prototype.updatePhantomInvasion = function(event, deltaTime) {
+    if (!event.phantoms) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.phantoms.forEach(phantom => {
+        // Update phantom behavior based on type
+        switch (phantom.behavior) {
+            case 'hunter':
+                // Hunt the largest player
+                let targetPlayer = null;
+                let maxMass = 0;
+                allPlayers.forEach(player => {
+                    const mass = player.getTotalMass();
+                    if (mass > maxMass) {
+                        maxMass = mass;
+                        targetPlayer = player;
+                    }
+                });
+                if (targetPlayer) {
+                    phantom.target = targetPlayer.getCenterPosition();
+                }
+                break;
+                
+            case 'stalker':
+                // Stalk the closest player
+                let closestPlayer = null;
+                let minDistance = Infinity;
+                allPlayers.forEach(player => {
+                    const distance = Vector2.distance(phantom.position, player.getCenterPosition());
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestPlayer = player;
+                    }
+                });
+                if (closestPlayer) {
+                    phantom.target = closestPlayer.getCenterPosition();
+                }
+                break;
+                
+            case 'berserker':
+                // Random movement with high damage
+                if (!phantom.target || Math.random() < 0.1) {
+                    phantom.target = new Vector2(
+                        MathUtils.random(0, GameConstants.ARENA_WIDTH),
+                        MathUtils.random(0, GameConstants.ARENA_HEIGHT)
+                    );
+                }
+                break;
+        }
+        
+        // Move phantom towards target
+        if (phantom.target) {
+            const direction = Vector2.subtract(phantom.target, phantom.position);
+            const distance = Vector2.magnitude(direction);
+            
+            if (distance > 10) {
+                const normalizedDir = Vector2.normalize(direction);
+                phantom.position = Vector2.add(phantom.position, 
+                    Vector2.multiply(normalizedDir, phantom.speed * deltaTime / 1000));
+            }
+        }
+        
+        // Check for collisions with players
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const distance = Vector2.distance(phantom.position, cell.position);
+                if (distance < phantom.radius + cell.radius) {
+                    // Apply damage
+                    cell.mass = Math.max(10, cell.mass - phantom.damage);
+                    if (cell.mass < 15) {
+                        cell.isAlive = false;
+                    }
+                }
+            });
+        });
+    });
+};
+
+GameEngine.prototype.updateMassFusion = function(event, deltaTime) {
+    if (!event.fusionZones || !event.fusionActive) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.fusionZones.forEach(fusionZone => {
+        if (!fusionZone.active) return;
+        
+        // Check for players in fusion zone
+        const playersInZone = allPlayers.filter(player => {
+            const distance = Vector2.distance(fusionZone.position, player.getCenterPosition());
+            return distance < fusionZone.radius;
+        });
+        
+        // Allow fusion between players in the same zone
+        if (playersInZone.length >= 2) {
+            for (let i = 0; i < playersInZone.length - 1; i++) {
+                for (let j = i + 1; j < playersInZone.length; j++) {
+                    const player1 = playersInZone[i];
+                    const player2 = playersInZone[j];
+                    
+                    // Check if they can fuse (close enough and not at max cells)
+                    const distance = Vector2.distance(player1.getCenterPosition(), player2.getCenterPosition());
+                    if (distance < 50 && player1.cells.length + player2.cells.length <= GameConstants.MAX_CELLS) {
+                        // Perform fusion
+                        player2.cells.forEach(cell => {
+                            cell.position = Vector2.add(cell.position, 
+                                Vector2.multiply(Vector2.normalize(
+                                    Vector2.subtract(player1.getCenterPosition(), player2.getCenterPosition())
+                                ), 20));
+                            player1.cells.push(cell);
+                        });
+                        
+                        // Remove fused player
+                        player2.die();
+                        
+                        // Deactivate fusion zone temporarily
+                        fusionZone.active = false;
+                        setTimeout(() => {
+                            fusionZone.active = true;
+                        }, 5000);
+                    }
+                }
+            }
+        }
+    });
+};
+
+GameEngine.prototype.updateTemporalParadox = function(event, deltaTime) {
+    if (!event.timeAnomalies || !event.paradoxActive) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.timeAnomalies.forEach(anomaly => {
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const distance = Vector2.distance(anomaly.position, cell.position);
+                if (distance < anomaly.radius) {
+                    // Apply time anomaly effects
+                    const influence = 1 - (distance / anomaly.radius);
+                    
+                    switch (anomaly.effect) {
+                        case 'slow':
+                            cell.velocity = Vector2.multiply(cell.velocity, 1 - influence * 0.5);
+                            break;
+                        case 'fast':
+                            cell.velocity = Vector2.multiply(cell.velocity, 1 + influence * 0.5);
+                            break;
+                        case 'reverse':
+                            cell.velocity = Vector2.multiply(cell.velocity, -0.5);
+                            break;
+                        case 'chaos':
+                            // Random velocity changes
+                            if (Math.random() < 0.1) {
+                                cell.velocity = Vector2.fromAngle(
+                                    Math.random() * Math.PI * 2,
+                                    MathUtils.random(50, 200)
+                                );
+                            }
+                            break;
+                    }
+                }
+            });
+        });
+    });
+};
+
+GameEngine.prototype.updateQuantumEntanglementNetwork = function(event, deltaTime) {
+    if (!event.entanglementGroups) return;
+    
+    event.entanglementGroups.forEach(group => {
+        if (group.players.length < 2) return;
+        
+        // Apply shared abilities between entangled players
+        group.players.forEach(player => {
+            if (!player.isAlive) return;
+            
+            switch (group.sharedAbilities) {
+                case 'speed':
+                    player.cells.forEach(cell => {
+                        cell.velocity = Vector2.multiply(cell.velocity, 1 + group.linkStrength * 0.2);
+                    });
+                    break;
+                case 'mass':
+                    player.cells.forEach(cell => {
+                        cell.mass *= 1 + group.linkStrength * 0.01;
+                        cell.radius = GameUtils.calculateMassRadius(cell.mass);
+                    });
+                    break;
+                case 'vision':
+                    // Enhanced vision range (implement in rendering)
+                    player.visionRange = 1 + group.linkStrength * 0.5;
+                    break;
+                case 'stealth':
+                    // Reduced visibility to other players
+                    player.stealthLevel = group.linkStrength;
+                    break;
+            }
+        });
+    });
+};
+
+GameEngine.prototype.updateChronoStorm = function(event, deltaTime) {
+    if (!event.stormPatterns || !event.stormActive) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.stormPatterns.forEach(pattern => {
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const distance = Vector2.distance(pattern.position, cell.position);
+                if (distance < pattern.radius) {
+                    // Apply storm effects
+                    const influence = 1 - (distance / pattern.radius);
+                    
+                    switch (pattern.type) {
+                        case 'cyclone':
+                            // Circular movement
+                            const angle = Math.atan2(cell.position.y - pattern.position.y, 
+                                                   cell.position.x - pattern.position.x);
+                            const newAngle = angle + pattern.intensity * deltaTime / 1000;
+                            const radius = distance;
+                            cell.position.x = pattern.position.x + Math.cos(newAngle) * radius;
+                            cell.position.y = pattern.position.y + Math.sin(newAngle) * radius;
+                            break;
+                            
+                        case 'lightning':
+                            // Random teleportation
+                            if (Math.random() < influence * 0.01) {
+                                cell.position = new Vector2(
+                                    MathUtils.random(0, GameConstants.ARENA_WIDTH),
+                                    MathUtils.random(0, GameConstants.ARENA_HEIGHT)
+                                );
+                            }
+                            break;
+                            
+                        case 'rain':
+                            // Mass loss
+                            cell.mass *= 1 - influence * 0.001;
+                            break;
+                            
+                        case 'wind':
+                            // Push in random direction
+                            const windForce = Vector2.fromAngle(
+                                Math.random() * Math.PI * 2,
+                                pattern.intensity * 100
+                            );
+                            cell.position = Vector2.add(cell.position, 
+                                Vector2.multiply(windForce, deltaTime / 1000));
+                            break;
+                            
+                        case 'fog':
+                            // Reduced visibility and speed
+                            cell.velocity = Vector2.multiply(cell.velocity, 1 - influence * 0.3);
+                            break;
+                    }
+                }
+            });
+        });
     });
 };
