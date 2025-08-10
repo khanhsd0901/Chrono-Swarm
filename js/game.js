@@ -195,7 +195,7 @@ class Player {
         const direction = Vector2.subtract(targetPosition, playerCenter);
         const distance = Vector2.magnitude(direction);
 
-        if (distance < 3) return; // Reduced dead zone for better responsiveness
+        if (distance < 1) return; // Reduced dead zone from 3 to 1 for better responsiveness
 
         const normalizedDirection = Vector2.normalize(direction);
 
@@ -216,8 +216,13 @@ class Player {
                 slowFactor *= this.frenzySpeedBoost;
             }
             
+            // Apply zone-based speed modifications
+            if (this.zoneSpeedMultiplier) {
+                slowFactor *= this.zoneSpeedMultiplier;
+            }
+            
             // Enhanced movement with momentum and distance-based acceleration
-            const distanceFactor = Math.min(distance / 100, 1.5); // Accelerate when far from target
+            const distanceFactor = Math.min(distance / 80, 2.0); // Increased max acceleration factor
             const responsiveSpeed = speed * slowFactor * distanceFactor;
             
             // Improved velocity application for smoother movement
@@ -227,7 +232,7 @@ class Player {
             // Add momentum - larger cells maintain more momentum
             const momentumFactor = 1 + (cell.mass / 1000); // Larger cells have more momentum
             cell.velocity = Vector2.add(
-                Vector2.multiply(cell.velocity, 0.95), // Slight velocity retention for momentum
+                Vector2.multiply(cell.velocity, 0.92), // Reduced velocity retention for better responsiveness
                 Vector2.multiply(accelerationDelta, momentumFactor)
             );
         });
@@ -553,6 +558,12 @@ class AIPlayer extends Player {
         this.teamwork = Math.random(); // How likely to cooperate with other AIs
         this.adaptability = Math.random(); // How quickly they change strategies
         
+        // Advanced AI traits for enhanced intelligence
+        this.tacticalAwareness = Math.random(); // Understanding of battlefield tactics
+        this.predictiveSkill = Math.random(); // Ability to predict player movement
+        this.resourceManagement = Math.random(); // Efficiency in resource gathering
+        this.abilityTiming = Math.random(); // Skill in using abilities at right time
+        
         // Territorial behavior for shared workspace dynamics
         this.territoryCenter = null;
         this.territoryRadius = MathUtils.random(250, 350);
@@ -564,6 +575,11 @@ class AIPlayer extends Player {
         this.lastAbilityUse = 0;
         this.abilityUseCooldown = MathUtils.random(3000, 8000); // Varied ability usage
         this.movementStyle = Math.random(); // 0-1 for different movement patterns
+        
+        // Advanced tactical memory
+        this.threatMemory = new Map(); // Remember dangerous players
+        this.resourceMap = new Map(); // Remember good resource locations
+        this.escapeRoutes = []; // Planned escape routes
     }
 
     update(deltaTime, gameEntities) {
@@ -583,12 +599,16 @@ class AIPlayer extends Player {
 
         this.lastDecision = now;
 
-        // Analyze surroundings
+        // Analyze surroundings with enhanced intelligence
         const threats = this.findThreats(gameEntities.players);
         const prey = this.findPrey(gameEntities.players);
         const food = this.findNearbyFood(gameEntities.chronoMatter);
         const rifts = gameEntities.temporalRifts;
         const allies = this.findAllies(gameEntities.players);
+
+        // Zone awareness - AI now considers zone effects
+        const currentZone = window.game.getPlayerZone(this);
+        this.analyzeZoneStrategy(currentZone);
 
         // Update territory for shared workspace dynamics
         this.updateTerritory();
@@ -599,7 +619,10 @@ class AIPlayer extends Player {
         // Dynamic formation changes based on situation
         this.updateFormationStrategy(threats, prey);
 
-        // State machine
+        // Enhanced strategic decision making
+        this.makeStrategicDecisions(threats, prey, food, currentZone);
+
+        // State machine with enhanced intelligence
         switch (this.state) {
             case 'wandering':
                 this.handleWandering(threats, prey, food, rifts);
@@ -613,6 +636,12 @@ class AIPlayer extends Player {
             case 'feeding':
                 this.handleFeeding(threats, prey, food, rifts);
                 break;
+            case 'zone_controlling':
+                this.handleZoneControl(threats, prey, food, rifts, currentZone);
+                break;
+            case 'strategic_positioning':
+                this.handleStrategicPositioning(threats, prey, food, rifts);
+                break;
         }
 
         // Execute movement based on current target with human-like behavior
@@ -621,10 +650,126 @@ class AIPlayer extends Player {
             this.executeHumanLikeMovement(deltaTime, threats, prey);
         }
     }
+    
+    // Enhanced AI methods for better intelligence
+    analyzeZoneStrategy(currentZone) {
+        if (!currentZone) return;
+        
+        const effects = currentZone.zone.effects;
+        
+        // Adjust behavior based on zone
+        if (effects.matterSpawnRate > 1.5) {
+            this.aggressiveness += 0.1; // More aggressive in high-resource zones
+        }
+        
+        if (effects.speedMultiplier < 1) {
+            this.patience += 0.1; // More patient in slow zones
+        }
+        
+        if (effects.voidDamage) {
+            this.riskTaking -= 0.2; // Less risky in dangerous zones
+        }
+    }
+    
+    makeStrategicDecisions(threats, prey, food, currentZone) {
+        const myMass = this.getTotalMass();
+        const myPosition = this.getCenterPosition();
+        
+        // Strategic zone movement
+        if (myMass < 200 && currentZone?.zone.effects.matterSpawnRate > 1.5) {
+            this.state = 'zone_controlling';
+            return;
+        }
+        
+        // Predictive hunting - anticipate player movement
+        if (prey.length > 0 && this.aggressiveness > 0.6) {
+            const target = prey[0].player;
+            const targetVelocity = target.cells.length > 0 ? target.cells[0].velocity : new Vector2(0, 0);
+            const predictedPosition = Vector2.add(target.getCenterPosition(), Vector2.multiply(targetVelocity, 2));
+            this.target = predictedPosition;
+            this.state = 'hunting';
+            return;
+        }
+        
+        // Defensive positioning when threatened
+        if (threats.length > 1 && myMass < 300) {
+            this.state = 'strategic_positioning';
+            return;
+        }
+        
+        // Opportunistic feeding
+        if (food.length > 3 && threats.length === 0) {
+            this.state = 'feeding';
+            return;
+        }
+    }
+    
+    handleZoneControl(threats, prey, food, rifts, currentZone) {
+        if (!currentZone) {
+            this.state = 'wandering';
+            return;
+        }
+        
+        // Stay in beneficial zones
+        const zoneCenter = new Vector2(
+            currentZone.zone.bounds.x + currentZone.zone.bounds.width / 2,
+            currentZone.zone.bounds.y + currentZone.zone.bounds.height / 2
+        );
+        
+        this.target = zoneCenter;
+        
+        // Exit zone control if threatened
+        if (threats.length > 0 && threats[0].distance < 150) {
+            this.state = 'fleeing';
+        }
+    }
+    
+    handleStrategicPositioning(threats, prey, food, rifts) {
+        // Find safest position with escape routes
+        const myPosition = this.getCenterPosition();
+        const safePositions = [];
+        
+        // Generate potential safe positions
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 200;
+            const testPos = Vector2.add(myPosition, Vector2.fromAngle(angle, distance));
+            
+            // Check if position is safe from threats
+            let safetyScore = 1000;
+            threats.forEach(threat => {
+                const distToThreat = Vector2.distance(testPos, threat.player.getCenterPosition());
+                safetyScore += distToThreat;
+            });
+            
+            // Prefer positions near food
+            food.forEach(f => {
+                const distToFood = Vector2.distance(testPos, f.matter.position);
+                safetyScore += 100 / (distToFood + 1);
+            });
+            
+            safePositions.push({ position: testPos, safety: safetyScore });
+        }
+        
+        // Choose safest position
+        const bestPosition = safePositions.reduce((best, current) => 
+            current.safety > best.safety ? current : best
+        );
+        
+        this.target = bestPosition.position;
+        
+        // Switch back to normal behavior if safe
+        if (threats.length === 0) {
+            this.state = 'wandering';
+        }
+    }
 
     executeHumanLikeMovement(deltaTime, threats, prey) {
         // Human-like movement with occasional hesitation and strategic decisions
         const distance = Vector2.distance(this.getCenterPosition(), this.target);
+        
+        // Intelligent ability usage based on situation
+        this.considerAbilityUsage(threats, prey);
         
         // Strategic ejecting behavior
         if (this.getTotalMass() > 300 && Math.random() < 0.02 && this.riskTaking > 0.5) {
@@ -633,37 +778,94 @@ class AIPlayer extends Player {
             this.ejectMass(Vector2.normalize(ejectDirection));
         }
         
-        // Human-like hesitation near threats
+        // Enhanced threat response with memory
         let movementModifier = 1.0;
         if (threats.length > 0) {
             const nearestThreat = threats[0];
+            
+            // Remember this threat
+            this.threatMemory.set(nearestThreat.player.id, {
+                lastSeen: Date.now(),
+                dangerLevel: nearestThreat.priority,
+                position: nearestThreat.player.getCenterPosition()
+            });
+            
             if (nearestThreat.distance < 100) {
-                // Hesitate when very close to threats
-                movementModifier = 0.3 + this.riskTaking * 0.4;
+                // Enhanced hesitation with tactical awareness
+                movementModifier = 0.2 + (this.riskTaking * 0.3) + (this.tacticalAwareness * 0.2);
+                
+                // Smart splitting when being chased
+                if (this.tacticalAwareness > 0.7 && this.getTotalMass() > 200 && Math.random() < 0.1) {
+                    this.splitToEscape();
+                }
             }
         }
         
-        // Occasional "mistakes" or suboptimal moves for realism
-        if (Math.random() < 0.05) {
-            // Sometimes move in slightly wrong direction
-            const errorAngle = (Math.random() - 0.5) * Math.PI * 0.3;
-            const currentDirection = Vector2.subtract(this.target, this.getCenterPosition());
-            const rotatedDirection = {
-                x: currentDirection.x * Math.cos(errorAngle) - currentDirection.y * Math.sin(errorAngle),
-                y: currentDirection.x * Math.sin(errorAngle) + currentDirection.y * Math.cos(errorAngle)
-            };
-            this.target = Vector2.add(this.getCenterPosition(), Vector2.normalize(rotatedDirection));
+        // Predictive movement - anticipate where target will be
+        if (this.predictiveSkill > 0.6 && prey.length > 0) {
+            const targetPlayer = prey[0].player;
+            if (targetPlayer.cells.length > 0) {
+                const targetVelocity = targetPlayer.cells[0].velocity;
+                const predictionTime = this.predictiveSkill * 2; // Up to 2 seconds ahead
+                const predictedTarget = Vector2.add(this.target, Vector2.multiply(targetVelocity, predictionTime));
+                this.target = predictedTarget;
+            }
         }
         
-        // Execute movement with modifier
-        this.moveTowards(this.target, deltaTime * movementModifier);
+        // Occasional "mistakes" or suboptimal moves for realism (reduced for smarter AI)
+        if (Math.random() < 0.02) { // Reduced from 0.05
+            // Sometimes move in slightly wrong direction
+            const errorAngle = (Math.random() - 0.5) * Math.PI * 0.2; // Reduced error
+            const currentDirection = Vector2.subtract(this.target, this.getCenterPosition());
+            const rotatedDirection = Vector2.fromAngle(
+                Math.atan2(currentDirection.y, currentDirection.x) + errorAngle,
+                Vector2.magnitude(currentDirection)
+            );
+            this.target = Vector2.add(this.getCenterPosition(), rotatedDirection);
+        }
         
-        // Strategic splitting during movement
-        if (distance > 150 && this.cells.length === 1 && this.getTotalMass() > 200 && 
-            Math.random() < (this.aggressiveness * 0.1)) {
-            // Split to move faster towards target
-            const direction = Vector2.subtract(this.target, this.getCenterPosition());
-            this.split(direction);
+        this.moveTowards(this.target, deltaTime * movementModifier);
+    }
+    
+    // Advanced AI tactical methods
+    considerAbilityUsage(threats, prey) {
+        const now = Date.now();
+        if (now - this.lastAbilityUse < this.abilityUseCooldown) return;
+        
+        // Smart ability usage based on situation and AI traits
+        if (this.abilityTiming > 0.7 && window.abilityManager) {
+            // Use stasis field when being chased
+            if (threats.length > 0 && threats[0].distance < 120 && this.getTotalMass() > 150) {
+                const stasisField = window.abilityManager.abilities.find(a => a.name === 'Stasis Field');
+                if (stasisField && stasisField.canUse(this)) {
+                    window.abilityManager.useAbility('Stasis Field', this, threats[0].player.getCenterPosition());
+                    this.lastAbilityUse = now;
+                    return;
+                }
+            }
+            
+            // Use echo when hunting
+            if (prey.length > 0 && prey[0].distance < 100 && this.aggressiveness > 0.8) {
+                const echo = window.abilityManager.abilities.find(a => a.name === 'Echo');
+                if (echo && echo.canUse(this)) {
+                    window.abilityManager.useAbility('Echo', this, this.getCenterPosition());
+                    this.lastAbilityUse = now;
+                    return;
+                }
+            }
+        }
+    }
+    
+    splitToEscape() {
+        // Strategic splitting to escape threats
+        if (this.cells.length < GameConstants.MAX_CELLS) {
+            const largestCell = this.cells.reduce((largest, cell) => 
+                cell.mass > largest.mass ? cell : largest
+            );
+            
+            if (largestCell.mass > GameConstants.MIN_SPLIT_MASS * 2) {
+                this.splitCell(largestCell);
+            }
         }
     }
 
@@ -1193,6 +1395,11 @@ class GameEngine {
         this.eventCooldown = 0;
         this.activeEvents = [];
         this.chronoMatterSpawnRate = 1; // Base spawn rate for events
+        
+        // Zone management system for expanded map
+        this.currentZones = new Map();
+        this.zoneEffects = new Map();
+        this.initializeZones();
     }
 
     setupCanvas() {
@@ -1207,14 +1414,31 @@ class GameEngine {
     }
 
     setupInputHandlers() {
-        // Mouse handling
+        // Mouse handling - Enhanced for consistent tracking
         this.canvas.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             this.mouse.x = e.clientX - rect.left;
             this.mouse.y = e.clientY - rect.top;
-            this.mouse.worldX = this.camera.screenToWorld(new Vector2(this.mouse.x, this.mouse.y)).x;
-            this.mouse.worldY = this.camera.screenToWorld(new Vector2(this.mouse.x, this.mouse.y)).y;
+            
+            // Ensure camera exists before converting coordinates
+            if (this.camera) {
+                const worldPos = this.camera.screenToWorld(new Vector2(this.mouse.x, this.mouse.y));
+                this.mouse.worldX = worldPos.x;
+                this.mouse.worldY = worldPos.y;
+            }
         });
+
+        // Add mouse enter/leave tracking to ensure consistent behavior
+        this.canvas.addEventListener('mouseenter', (e) => {
+            this.mouseInCanvas = true;
+        });
+        
+        this.canvas.addEventListener('mouseleave', (e) => {
+            this.mouseInCanvas = false;
+        });
+        
+        // Initialize mouse tracking state
+        this.mouseInCanvas = false;
 
         // Keyboard handling
         document.addEventListener('keydown', (e) => {
@@ -1390,8 +1614,14 @@ class GameEngine {
         
         // Update player
         if (this.player && this.player.isAlive) {
-            const mouseWorldPos = new Vector2(this.mouse.worldX, this.mouse.worldY);
-            this.player.update(deltaTime, mouseWorldPos);
+            // Only update mouse position if mouse is in canvas and we have valid coordinates
+            if (this.mouseInCanvas && this.mouse.worldX !== undefined && this.mouse.worldY !== undefined) {
+                const mouseWorldPos = new Vector2(this.mouse.worldX, this.mouse.worldY);
+                this.player.update(deltaTime, mouseWorldPos);
+            } else {
+                // Update without mouse position if mouse is not tracked properly
+                this.player.update(deltaTime);
+            }
             this.camera.followPlayer(this.player);
         }
         
@@ -1435,6 +1665,12 @@ class GameEngine {
         
         // Handle dynamic gameplay events
         this.handleDynamicEvents(deltaTime);
+        
+        // Update zone effects for expanded map
+        this.updateZoneEffects(deltaTime);
+        
+        // Update performance monitoring
+        this.updatePerformanceMonitoring();
     }
 
     updateWorldEntities(deltaTime) {
@@ -1607,9 +1843,48 @@ class GameEngine {
     }
 
     spawnChronoMatter(deltaTime) {
-        const spawnChance = GameConstants.MATTER_SPAWN_RATE * (deltaTime / 1000);
+        const baseSpawnChance = GameConstants.MATTER_SPAWN_RATE * (deltaTime / 1000);
         
-        if (Math.random() < spawnChance && this.chronoMatter.length < GameConstants.MAX_MATTER_COUNT) {
+        // Zone-aware spawning with enhanced rates in special zones
+        Object.entries(GameConstants.ZONES).forEach(([zoneKey, zone]) => {
+            const zoneEffects = zone.effects;
+            const spawnMultiplier = zoneEffects.matterSpawnRate || 1.0;
+            const adjustedSpawnChance = baseSpawnChance * spawnMultiplier;
+            
+            if (Math.random() < adjustedSpawnChance && this.chronoMatter.length < GameConstants.MAX_MATTER_COUNT) {
+                let attempts = 0;
+                let position;
+                
+                do {
+                    // Spawn within zone bounds
+                    position = new Vector2(
+                        MathUtils.random(zone.bounds.x, zone.bounds.x + zone.bounds.width),
+                        MathUtils.random(zone.bounds.y, zone.bounds.y + zone.bounds.height)
+                    );
+                    attempts++;
+                } while (this.isPositionTooCloseToRifts(position, 50) && attempts < 20);
+                
+                if (attempts < 20) {
+                    const matter = new ChronoMatter(position.x, position.y);
+                    
+                    // Special matter types based on zone
+                    if (zoneKey === 'NORTHEAST_CRYSTAL') {
+                        matter.mass = GameConstants.MATTER_VALUE * 2; // Crystal matter worth more
+                        matter.color = zone.color;
+                        matter.isCrystalMatter = true;
+                    } else if (zoneKey === 'CENTER') {
+                        matter.mass = GameConstants.MATTER_VALUE * 1.5; // Nexus matter
+                        matter.color = zone.color;
+                        matter.isNexusMatter = true;
+                    }
+                    
+                    this.chronoMatter.push(matter);
+                }
+            }
+        });
+        
+        // Regular spawning for neutral areas
+        if (Math.random() < baseSpawnChance && this.chronoMatter.length < GameConstants.MAX_MATTER_COUNT) {
             let attempts = 0;
             let position;
             
@@ -1621,7 +1896,14 @@ class GameEngine {
                 attempts++;
             } while (this.isPositionTooCloseToRifts(position, 50) && attempts < 20);
             
-            if (attempts < 20) {
+            // Only spawn in neutral areas (not in any zone)
+            const isInZone = Object.values(GameConstants.ZONES).some(zone => {
+                const bounds = zone.bounds;
+                return position.x >= bounds.x && position.x <= bounds.x + bounds.width &&
+                       position.y >= bounds.y && position.y <= bounds.y + bounds.height;
+            });
+            
+            if (attempts < 20 && !isInZone) {
                 this.chronoMatter.push(new ChronoMatter(position.x, position.y));
             }
         }
@@ -1640,6 +1922,9 @@ class GameEngine {
         
         // Render world entities
         this.renderWorldEntities();
+        
+        // Render zone boundaries and effects
+        this.renderZones(this.ctx);
         
         // Render players
         this.renderPlayers();
@@ -1803,8 +2088,32 @@ class GameEngine {
     }
 
     respawn() {
+        // Stop current game loop to prevent conflicts
+        this.isRunning = false;
+        
+        // Reset game state
+        this.isPaused = false;
+        this.gameTime = 0;
+        this.lastFrameTime = performance.now();
+        this.gameStartTime = Date.now();
+        
+        // Clear active events
+        this.activeEvents = [];
+        this.lastEventTime = 0;
+        this.eventCooldown = 0;
+        
+        // Reset camera position
+        if (this.camera) {
+            this.camera.position = new Vector2(0, 0);
+            this.camera.zoom = 1;
+            this.camera.targetZoom = 1;
+        }
+        
         if (this.player) {
+            // Reset player state
             this.player.spawn();
+            
+            // Restart the game
             this.startGame(this.player.name);
         }
     }
@@ -1865,7 +2174,23 @@ class GameEngine {
             'time_dilation',
             'mass_redistribution',
             'teleport_chaos',
-            'inverted_controls'
+            'inverted_controls',
+            // New surprise events
+            'phantom_swarm',
+            'energy_vampirism',
+            'mirror_dimension',
+            'quantum_tunneling',
+            'cellular_mitosis',
+            'temporal_echo',
+            'void_zones',
+            'mass_inversion',
+            'chrono_lockdown',
+            'reality_glitch',
+            'dimensional_shift',
+            'energy_cascade',
+            'temporal_storm',
+            'quantum_entanglement',
+            'chrono_plague'
         ];
         
         const randomEvent = events[Math.floor(Math.random() * events.length)];
@@ -1874,6 +2199,170 @@ class GameEngine {
 
     startEvent(eventType) {
         const event = { type: eventType, duration: 0, intensity: 1 };
+        
+        // Creative event notifications
+        const eventNotifications = {
+            'chrono_storm': {
+                title: '⚡ CHRONO STORM INCOMING! ⚡',
+                message: 'Temporal energy surges through the arena! Matter spawns rapidly!',
+                type: 'warning'
+            },
+            'mass_surge': {
+                title: '💥 MASS SURGE ACTIVATED! 💥',
+                message: 'All Chrono-Matter doubles in value! Consume quickly!',
+                type: 'success'
+            },
+            'gravity_shift': {
+                title: '🌀 GRAVITY ANOMALY DETECTED! 🌀',
+                message: 'A massive gravitational pull emerges in the arena!',
+                type: 'warning'
+            },
+            'temporal_freeze': {
+                title: '❄️ TEMPORAL FREEZE! ❄️',
+                message: 'Time slows for some competitors! Use this advantage!',
+                type: 'info'
+            },
+            'matter_rain': {
+                title: '🌧️ CHRONO-MATTER RAIN! 🌧️',
+                message: 'The arena is flooded with energy! Feast while you can!',
+                type: 'success'
+            },
+            'ai_frenzy': {
+                title: '🤖 AI FRENZY MODE! 🤖',
+                message: 'AI competitors enter berserker mode! Stay alert!',
+                type: 'error'
+            },
+            'speed_boost': {
+                title: '🚀 TEMPORAL ACCELERATION! 🚀',
+                message: 'Time flows faster! Everyone moves with lightning speed!',
+                type: 'info'
+            },
+            'shrinking_arena': {
+                title: '🔥 ARENA COLLAPSE! 🔥',
+                message: 'The battlefield shrinks! Fight for the center!',
+                type: 'error'
+            },
+            'chaos_split': {
+                title: '💫 CHAOS FRAGMENTATION! 💫',
+                message: 'Unstable energy causes random cell divisions!',
+                type: 'warning'
+            },
+            'magnetic_field': {
+                title: '🧲 MAGNETIC ANOMALY! 🧲',
+                message: 'Mysterious forces pull players together!',
+                type: 'warning'
+            },
+            'time_dilation': {
+                title: '⏰ TIME DILATION FIELD! ⏰',
+                message: 'Time flows differently across the arena!',
+                type: 'info'
+            },
+            'mass_redistribution': {
+                title: '⚖️ MASS REDISTRIBUTION! ⚖️',
+                message: 'Energy balances across all competitors!',
+                type: 'warning'
+            },
+            'teleport_chaos': {
+                title: '🌟 TELEPORT STORM! 🌟',
+                message: 'Random teleportation rifts appear everywhere!',
+                type: 'info'
+            },
+            'inverted_controls': {
+                title: '🔄 CONTROL INVERSION! 🔄',
+                message: 'Temporal interference scrambles movement controls!',
+                type: 'error'
+            },
+            // New surprise events notifications
+            'phantom_swarm': {
+                title: '👻 PHANTOM SWARM UNLEASHED! 👻',
+                message: 'Ghostly entities emerge to hunt the largest players!',
+                type: 'error'
+            },
+            'energy_vampirism': {
+                title: '🧛 ENERGY VAMPIRISM! 🧛',
+                message: 'Consuming others now steals their abilities temporarily!',
+                type: 'warning'
+            },
+            'mirror_dimension': {
+                title: '🪞 MIRROR DIMENSION BREACH! 🪞',
+                message: 'A parallel arena overlaps! Avoid your dark reflections!',
+                type: 'error'
+            },
+            'quantum_tunneling': {
+                title: '🕳️ QUANTUM TUNNELING ACTIVE! 🕳️',
+                message: 'Players can phase through walls and each other!',
+                type: 'info'
+            },
+            'cellular_mitosis': {
+                title: '🧬 CELLULAR MITOSIS SURGE! 🧬',
+                message: 'All cells undergo rapid division! Chaos ensues!',
+                type: 'warning'
+            },
+            'temporal_echo': {
+                title: '🔊 TEMPORAL ECHO PHENOMENON! 🔊',
+                message: 'Past actions repeat themselves across time!',
+                type: 'info'
+            },
+            'void_zones': {
+                title: '🕳️ VOID ZONES MANIFESTING! 🕳️',
+                message: 'Dark zones appear that consume everything inside!',
+                type: 'error'
+            },
+            'mass_inversion': {
+                title: '🔄 MASS INVERSION FIELD! 🔄',
+                message: 'Smaller becomes larger, larger becomes smaller!',
+                type: 'warning'
+            },
+            'chrono_lockdown': {
+                title: '🔒 CHRONO-LOCKDOWN INITIATED! 🔒',
+                message: 'No new matter spawns! Fight for what remains!',
+                type: 'error'
+            },
+            'reality_glitch': {
+                title: '📺 REALITY GLITCH DETECTED! 📺',
+                message: 'The arena flickers between dimensions!',
+                type: 'warning'
+            },
+            'dimensional_shift': {
+                title: '🌌 DIMENSIONAL SHIFT! 🌌',
+                message: 'The arena rotates and transforms around you!',
+                type: 'info'
+            },
+            'energy_cascade': {
+                title: '💫 ENERGY CASCADE! 💫',
+                message: 'Chain reactions spread across the battlefield!',
+                type: 'success'
+            },
+            'temporal_storm': {
+                title: '🌪️ TEMPORAL STORM! 🌪️',
+                message: 'Time itself becomes unstable! Brace for chaos!',
+                type: 'error'
+            },
+            'quantum_entanglement': {
+                title: '🔗 QUANTUM ENTANGLEMENT! 🔗',
+                message: 'Players become linked! What affects one affects all!',
+                type: 'warning'
+            },
+            'chrono_plague': {
+                title: '🦠 CHRONO-PLAGUE OUTBREAK! 🦠',
+                message: 'A contagious effect spreads between players!',
+                type: 'error'
+            }
+        };
+        
+        // Show notification for the event
+        const notification = eventNotifications[eventType];
+        if (notification && window.uiSystem) {
+            window.uiSystem.showNotification(notification.title, notification.type);
+            setTimeout(() => {
+                window.uiSystem.showNotification(notification.message, 'info');
+            }, 1500);
+        }
+        
+        // Play event sound
+        if (window.audioSystem) {
+            window.audioSystem.playGameSound('event_trigger');
+        }
         
         switch (eventType) {
             case 'chrono_storm':
@@ -1958,6 +2447,84 @@ class GameEngine {
             case 'inverted_controls':
                 event.duration = 10000; // 10 seconds
                 this.createInvertedControls(event);
+                break;
+                
+            // New surprise events
+            case 'phantom_swarm':
+                event.duration = 15000; // 15 seconds
+                event.phantomCount = MathUtils.random(3, 6);
+                this.createPhantomSwarm(event);
+                break;
+                
+            case 'energy_vampirism':
+                event.duration = 20000; // 20 seconds
+                this.createEnergyVampirism(event);
+                break;
+                
+            case 'mirror_dimension':
+                event.duration = 12000; // 12 seconds
+                this.createMirrorDimension(event);
+                break;
+                
+            case 'quantum_tunneling':
+                event.duration = 8000; // 8 seconds
+                this.createQuantumTunneling(event);
+                break;
+                
+            case 'cellular_mitosis':
+                event.duration = 6000; // 6 seconds
+                this.createCellularMitosis(event);
+                break;
+                
+            case 'temporal_echo':
+                event.duration = 10000; // 10 seconds
+                this.createTemporalEcho(event);
+                break;
+                
+            case 'void_zones':
+                event.duration = 18000; // 18 seconds
+                event.voidCount = MathUtils.random(2, 4);
+                this.createVoidZones(event);
+                break;
+                
+            case 'mass_inversion':
+                event.duration = 8000; // 8 seconds
+                this.createMassInversion(event);
+                break;
+                
+            case 'chrono_lockdown':
+                event.duration = 25000; // 25 seconds
+                this.createChronoLockdown(event);
+                break;
+                
+            case 'reality_glitch':
+                event.duration = 5000; // 5 seconds
+                this.createRealityGlitch(event);
+                break;
+                
+            case 'dimensional_shift':
+                event.duration = 10000; // 10 seconds
+                this.createDimensionalShift(event);
+                break;
+                
+            case 'energy_cascade':
+                event.duration = 12000; // 12 seconds
+                this.createEnergyCascade(event);
+                break;
+                
+            case 'temporal_storm':
+                event.duration = 15000; // 15 seconds
+                this.createTemporalStorm(event);
+                break;
+                
+            case 'quantum_entanglement':
+                event.duration = 20000; // 20 seconds
+                this.createQuantumEntanglement(event);
+                break;
+                
+            case 'chrono_plague':
+                event.duration = 25000; // 25 seconds
+                this.createChronoPlague(event);
                 break;
         }
         
@@ -2112,6 +2679,30 @@ class GameEngine {
                 break;
             case 'time_dilation':
                 this.updateTimeDilation(event, deltaTime);
+                break;
+            case 'phantom_swarm':
+                this.updatePhantomSwarm(event, deltaTime);
+                break;
+            case 'mirror_dimension':
+                this.updateMirrorDimension(event, deltaTime);
+                break;
+            case 'void_zones':
+                this.updateVoidZones(event, deltaTime);
+                break;
+            case 'reality_glitch':
+                this.updateRealityGlitch(event, deltaTime);
+                break;
+            case 'dimensional_shift':
+                this.updateDimensionalShift(event, deltaTime);
+                break;
+            case 'temporal_storm':
+                this.updateTemporalStorm(event, deltaTime);
+                break;
+            case 'quantum_entanglement':
+                this.updateQuantumEntanglement(event, deltaTime);
+                break;
+            case 'chrono_plague':
+                this.updateChronoPlague(event, deltaTime);
                 break;
         }
     }
@@ -2277,7 +2868,313 @@ class GameEngine {
             window.audioSystem.playGameSound('event_trigger');
         }
     }
+
+    announceEvent(eventType) {
+        console.log(`🎯 Event triggered: ${eventType}`);
+    }
+    
+    // Zone Management System
+    initializeZones() {
+        // Initialize zone effects for each defined zone
+        Object.keys(GameConstants.ZONES).forEach(zoneKey => {
+            const zone = GameConstants.ZONES[zoneKey];
+            this.zoneEffects.set(zoneKey, {
+                ...zone.effects,
+                activeTime: 0,
+                lastUpdate: Date.now()
+            });
+        });
+    }
+    
+    getPlayerZone(player) {
+        if (!player || player.cells.length === 0) return null;
+        
+        const playerCenter = player.getCenterPosition();
+        
+        // Check which zone the player is in
+        for (const [zoneKey, zone] of Object.entries(GameConstants.ZONES)) {
+            const bounds = zone.bounds;
+            if (playerCenter.x >= bounds.x && 
+                playerCenter.x <= bounds.x + bounds.width &&
+                playerCenter.y >= bounds.y && 
+                playerCenter.y <= bounds.y + bounds.height) {
+                return { key: zoneKey, zone: zone };
+            }
+        }
+        
+        return null; // In neutral territory
+    }
+    
+    updateZoneEffects(deltaTime) {
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        
+        allPlayers.forEach(player => {
+            const currentZone = this.getPlayerZone(player);
+            const playerId = player.id;
+            
+            // Clear previous zone effects
+            this.currentZones.set(playerId, currentZone);
+            
+            if (currentZone) {
+                const effects = currentZone.zone.effects;
+                
+                // Apply zone effects to player
+                if (effects.speedMultiplier) {
+                    player.zoneSpeedMultiplier = effects.speedMultiplier;
+                }
+                
+                if (effects.damageMultiplier) {
+                    player.zoneDamageMultiplier = effects.damageMultiplier;
+                }
+                
+                if (effects.energyRegeneration && Math.random() < 0.02) {
+                    // Slowly regenerate mass in energy fields
+                    player.cells.forEach(cell => {
+                        cell.mass = Math.min(cell.mass * 1.002, 1000);
+                        cell.radius = Math.sqrt(cell.mass / Math.PI) * 2;
+                    });
+                }
+                
+                if (effects.voidDamage && Math.random() < 0.01) {
+                    // Slowly damage in void zones
+                    player.cells.forEach(cell => {
+                        cell.mass *= 0.998;
+                        if (cell.mass < 10) {
+                            cell.isAlive = false;
+                        }
+                    });
+                }
+                
+                // Show zone entry notification
+                if (!player.lastZone || player.lastZone !== currentZone.key) {
+                    if (window.uiSystem) {
+                        window.uiSystem.showNotification(
+                            `🌍 Entering ${currentZone.zone.name}`, 
+                            'info'
+                        );
+                    }
+                    player.lastZone = currentZone.key;
+                }
+            } else {
+                // Clear zone effects when leaving zones
+                delete player.zoneSpeedMultiplier;
+                delete player.zoneDamageMultiplier;
+                player.lastZone = null;
+            }
+        });
+    }
+    
+    renderZones(ctx) {
+        // Render zone boundaries and effects
+        Object.entries(GameConstants.ZONES).forEach(([zoneKey, zone]) => {
+            const bounds = zone.bounds;
+            const topLeft = this.camera.worldToScreen(new Vector2(bounds.x, bounds.y));
+            const bottomRight = this.camera.worldToScreen(new Vector2(bounds.x + bounds.width, bounds.y + bounds.height));
+            
+            // Zone boundary
+            ctx.strokeStyle = zone.color + '40'; // Semi-transparent
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.strokeRect(
+                topLeft.x, 
+                topLeft.y, 
+                bottomRight.x - topLeft.x, 
+                bottomRight.y - topLeft.y
+            );
+            ctx.setLineDash([]);
+            
+            // Zone name label
+            if (this.camera.zoom > 0.3) {
+                const centerScreen = this.camera.worldToScreen(new Vector2(
+                    bounds.x + bounds.width / 2,
+                    bounds.y + bounds.height / 2
+                ));
+                
+                ctx.fillStyle = zone.color;
+                ctx.font = `${16 * this.camera.zoom}px Orbitron`;
+                ctx.textAlign = 'center';
+                ctx.fillText(zone.name, centerScreen.x, centerScreen.y);
+            }
+        });
+    }
 }
+
+// New Event Implementations for Enhanced Gameplay
+
+// Phantom Swarm - Ghostly entities hunt largest players
+GameEngine.prototype.createPhantomSwarm = function(event) {
+    event.phantoms = [];
+    for (let i = 0; i < event.phantomCount; i++) {
+        const phantom = {
+            position: new Vector2(
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING),
+                MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING)
+            ),
+            target: null,
+            speed: 150,
+            radius: 25,
+            damage: 5
+        };
+        event.phantoms.push(phantom);
+    }
+};
+
+// Energy Vampirism - Consuming others steals abilities
+GameEngine.prototype.createEnergyVampirism = function(event) {
+    event.vampirismActive = true;
+    this.originalConsumptionLogic = this.handlePlayerCollision;
+};
+
+// Mirror Dimension - Dark reflections appear
+GameEngine.prototype.createMirrorDimension = function(event) {
+    event.mirrorPlayers = [];
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    allPlayers.forEach(player => {
+        const mirror = {
+            originalPlayer: player,
+            cells: player.cells.map(cell => ({
+                position: new Vector2(
+                    GameConstants.ARENA_WIDTH - cell.position.x,
+                    GameConstants.ARENA_HEIGHT - cell.position.y
+                ),
+                mass: cell.mass * 0.7,
+                radius: cell.radius * 0.8,
+                color: '#ff0000'
+            }))
+        };
+        event.mirrorPlayers.push(mirror);
+    });
+};
+
+// Quantum Tunneling - Phase through walls and players
+GameEngine.prototype.createQuantumTunneling = function(event) {
+    event.phasingActive = true;
+    this.originalCollisionDetection = this.checkCollision;
+};
+
+// Cellular Mitosis - Rapid cell division
+GameEngine.prototype.createCellularMitosis = function(event) {
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    allPlayers.forEach(player => {
+        if (player.cells.length < GameConstants.MAX_CELLS) {
+            player.cells.forEach(cell => {
+                if (Math.random() < 0.3 && cell.mass > 40) {
+                    player.splitCell(cell);
+                }
+            });
+        }
+    });
+};
+
+// Temporal Echo - Past actions repeat
+GameEngine.prototype.createTemporalEcho = function(event) {
+    event.echoActions = [];
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    allPlayers.forEach(player => {
+        if (player.movementHistory && player.movementHistory.length > 0) {
+            event.echoActions.push({
+                player: player,
+                history: [...player.movementHistory]
+            });
+        }
+    });
+};
+
+// Void Zones - Areas that consume everything
+GameEngine.prototype.createVoidZones = function(event) {
+    event.voidZones = [];
+    for (let i = 0; i < event.voidCount; i++) {
+        const voidZone = {
+            position: new Vector2(
+                MathUtils.random(GameConstants.ARENA_WIDTH * 0.2, GameConstants.ARENA_WIDTH * 0.8),
+                MathUtils.random(GameConstants.ARENA_HEIGHT * 0.2, GameConstants.ARENA_HEIGHT * 0.8)
+            ),
+            radius: MathUtils.random(80, 120),
+            growthRate: 2,
+            maxRadius: 200
+        };
+        event.voidZones.push(voidZone);
+    }
+};
+
+// Mass Inversion - Smaller becomes larger
+GameEngine.prototype.createMassInversion = function(event) {
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    allPlayers.forEach(player => {
+        const totalMass = player.getTotalMass();
+        const averageMass = totalMass / player.cells.length;
+        player.cells.forEach(cell => {
+            const inversionFactor = averageMass / cell.mass;
+            cell.mass = Math.max(20, Math.min(500, cell.mass * inversionFactor));
+            cell.radius = Math.sqrt(cell.mass / Math.PI) * 2;
+        });
+    });
+};
+
+// Chrono Lockdown - No new matter spawns
+GameEngine.prototype.createChronoLockdown = function(event) {
+    event.originalSpawnRate = this.chronoMatterSpawnRate;
+    this.chronoMatterSpawnRate = 0;
+};
+
+// Reality Glitch - Arena flickers
+GameEngine.prototype.createRealityGlitch = function(event) {
+    event.glitchIntensity = 1;
+    event.glitchFrequency = 200; // milliseconds
+};
+
+// Dimensional Shift - Arena rotates
+GameEngine.prototype.createDimensionalShift = function(event) {
+    event.rotationAngle = 0;
+    event.rotationSpeed = Math.PI / 10000; // radians per ms
+};
+
+// Energy Cascade - Chain reactions
+GameEngine.prototype.createEnergyCascade = function(event) {
+    event.cascadeChain = 0;
+    event.cascadeRadius = 100;
+};
+
+// Temporal Storm - Unstable time
+GameEngine.prototype.createTemporalStorm = function(event) {
+    event.timeFluctuations = [];
+    for (let i = 0; i < 5; i++) {
+        event.timeFluctuations.push({
+            center: new Vector2(
+                MathUtils.random(GameConstants.ARENA_WIDTH * 0.2, GameConstants.ARENA_WIDTH * 0.8),
+                MathUtils.random(GameConstants.ARENA_HEIGHT * 0.2, GameConstants.ARENA_HEIGHT * 0.8)
+            ),
+            radius: MathUtils.random(150, 250),
+            timeMultiplier: MathUtils.random(0.3, 2.0)
+        });
+    }
+};
+
+// Quantum Entanglement - Players linked
+GameEngine.prototype.createQuantumEntanglement = function(event) {
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    event.entangledPairs = [];
+    for (let i = 0; i < allPlayers.length - 1; i += 2) {
+        if (allPlayers[i + 1]) {
+            event.entangledPairs.push([allPlayers[i], allPlayers[i + 1]]);
+        }
+    }
+};
+
+// Chrono Plague - Contagious effect
+GameEngine.prototype.createChronoPlague = function(event) {
+    event.infectedPlayers = new Set();
+    event.plagueRadius = 80;
+    event.infectionChance = 0.1;
+    
+    // Start with one random infected player
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    if (allPlayers.length > 0) {
+        const patient0 = allPlayers[Math.floor(Math.random() * allPlayers.length)];
+        event.infectedPlayers.add(patient0);
+        patient0.plagueEffect = { massDecay: 0.998, visualEffect: true };
+    }
+};
 
 // Initialize global game instance
 if (typeof window !== 'undefined') {
@@ -2293,3 +3190,212 @@ if (typeof module !== 'undefined' && module.exports) {
         GameEngine
     };
 }
+
+// Update methods for new events
+GameEngine.prototype.updatePhantomSwarm = function(event, deltaTime) {
+    if (!event.phantoms) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.phantoms.forEach(phantom => {
+        // Phantoms hunt the largest players
+        let targetPlayer = null;
+        let maxMass = 0;
+        
+        allPlayers.forEach(player => {
+            const mass = player.getTotalMass();
+            if (mass > maxMass) {
+                maxMass = mass;
+                targetPlayer = player;
+            }
+        });
+        
+        if (targetPlayer) {
+            phantom.target = targetPlayer.getCenterPosition();
+            const direction = Vector2.subtract(phantom.target, phantom.position);
+            const distance = Vector2.magnitude(direction);
+            
+            if (distance > 10) {
+                const normalizedDir = Vector2.normalize(direction);
+                phantom.position = Vector2.add(phantom.position, 
+                    Vector2.multiply(normalizedDir, phantom.speed * deltaTime / 1000));
+                
+                // Damage player if close enough
+                if (distance < phantom.radius + 30) {
+                    targetPlayer.cells.forEach(cell => {
+                        if (Vector2.distance(phantom.position, cell.position) < phantom.radius + cell.radius) {
+                            cell.mass = Math.max(10, cell.mass - phantom.damage);
+                        }
+                    });
+                }
+            }
+        }
+    });
+};
+
+GameEngine.prototype.updateMirrorDimension = function(event, deltaTime) {
+    if (!event.mirrorPlayers) return;
+    
+    // Update mirror positions and check for collisions
+    event.mirrorPlayers.forEach(mirror => {
+        const originalPlayer = mirror.originalPlayer;
+        if (originalPlayer && originalPlayer.isAlive) {
+            // Update mirror positions to be opposite of original
+            mirror.cells.forEach((mirrorCell, index) => {
+                if (originalPlayer.cells[index]) {
+                    const originalCell = originalPlayer.cells[index];
+                    mirrorCell.position.x = GameConstants.ARENA_WIDTH - originalCell.position.x;
+                    mirrorCell.position.y = GameConstants.ARENA_HEIGHT - originalCell.position.y;
+                    
+                    // Check collision with original
+                    const distance = Vector2.distance(mirrorCell.position, originalCell.position);
+                    if (distance < mirrorCell.radius + originalCell.radius) {
+                        // Damage both on collision
+                        originalCell.mass *= 0.95;
+                        mirrorCell.mass *= 0.95;
+                    }
+                }
+            });
+        }
+    });
+};
+
+GameEngine.prototype.updateVoidZones = function(event, deltaTime) {
+    if (!event.voidZones) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    event.voidZones.forEach(voidZone => {
+        // Grow void zones over time
+        if (voidZone.radius < voidZone.maxRadius) {
+            voidZone.radius += voidZone.growthRate * deltaTime / 1000;
+        }
+        
+        // Consume everything inside void zones
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                const distance = Vector2.distance(voidZone.position, cell.position);
+                if (distance < voidZone.radius) {
+                    cell.mass *= 0.99; // Rapid mass loss in void
+                    if (cell.mass < 5) {
+                        cell.isAlive = false;
+                    }
+                }
+            });
+        });
+        
+        // Consume chrono matter
+        this.chronoMatter = this.chronoMatter.filter(matter => {
+            const distance = Vector2.distance(voidZone.position, matter.position);
+            return distance >= voidZone.radius;
+        });
+    });
+};
+
+GameEngine.prototype.updateRealityGlitch = function(event, deltaTime) {
+    // Create visual glitching effects
+    if (Math.random() < 0.1) {
+        if (window.particleSystem) {
+            const randomPos = new Vector2(
+                MathUtils.random(0, GameConstants.ARENA_WIDTH),
+                MathUtils.random(0, GameConstants.ARENA_HEIGHT)
+            );
+            window.particleSystem.createTimeDistortion(randomPos, 'glitch', 20);
+        }
+    }
+};
+
+GameEngine.prototype.updateDimensionalShift = function(event, deltaTime) {
+    // Rotate the arena perspective (visual effect)
+    event.rotationAngle += event.rotationSpeed * deltaTime;
+    
+    // Apply subtle position shifts to all entities
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    allPlayers.forEach(player => {
+        player.cells.forEach(cell => {
+            const centerX = GameConstants.ARENA_WIDTH / 2;
+            const centerY = GameConstants.ARENA_HEIGHT / 2;
+            const relativePos = Vector2.subtract(cell.position, new Vector2(centerX, centerY));
+            
+            // Apply slight rotation
+            const rotatedPos = Vector2.fromAngle(
+                Math.atan2(relativePos.y, relativePos.x) + event.rotationSpeed * deltaTime / 1000,
+                Vector2.magnitude(relativePos)
+            );
+            
+            cell.position = Vector2.add(new Vector2(centerX, centerY), rotatedPos);
+        });
+    });
+};
+
+GameEngine.prototype.updateTemporalStorm = function(event, deltaTime) {
+    if (!event.timeFluctuations) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    // Apply different time effects in different areas
+    allPlayers.forEach(player => {
+        player.cells.forEach(cell => {
+            event.timeFluctuations.forEach(fluctuation => {
+                const distance = Vector2.distance(cell.position, fluctuation.center);
+                if (distance < fluctuation.radius) {
+                    const influence = 1 - (distance / fluctuation.radius);
+                    cell.velocity = Vector2.multiply(cell.velocity, 
+                        1 + (fluctuation.timeMultiplier - 1) * influence);
+                }
+            });
+        });
+    });
+};
+
+GameEngine.prototype.updateQuantumEntanglement = function(event, deltaTime) {
+    if (!event.entangledPairs) return;
+    
+    // Synchronize movement between entangled players
+    event.entangledPairs.forEach(pair => {
+        const [player1, player2] = pair;
+        if (player1.isAlive && player2.isAlive) {
+            // Share velocity between entangled players
+            player1.cells.forEach((cell1, index) => {
+                if (player2.cells[index]) {
+                    const cell2 = player2.cells[index];
+                    const avgVelocity = Vector2.multiply(
+                        Vector2.add(cell1.velocity, cell2.velocity), 0.5);
+                    cell1.velocity = avgVelocity;
+                    cell2.velocity = avgVelocity;
+                }
+            });
+        }
+    });
+};
+
+GameEngine.prototype.updateChronoPlague = function(event, deltaTime) {
+    if (!event.infectedPlayers) return;
+    
+    const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+    
+    // Spread infection
+    event.infectedPlayers.forEach(infected => {
+        if (!infected.isAlive) return;
+        
+        allPlayers.forEach(player => {
+            if (player === infected || event.infectedPlayers.has(player)) return;
+            
+            const distance = Vector2.distance(infected.getCenterPosition(), player.getCenterPosition());
+            if (distance < event.plagueRadius && Math.random() < event.infectionChance) {
+                event.infectedPlayers.add(player);
+                player.plagueEffect = { massDecay: 0.998, visualEffect: true };
+            }
+        });
+        
+        // Apply plague effects
+        if (infected.plagueEffect) {
+            infected.cells.forEach(cell => {
+                cell.mass *= infected.plagueEffect.massDecay;
+                if (cell.mass < 15) {
+                    cell.isAlive = false;
+                }
+            });
+        }
+    });
+};

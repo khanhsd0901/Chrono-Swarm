@@ -89,7 +89,8 @@ class UISystem {
             tutorialTitle: document.getElementById('tutorialTitle'),
             tutorialText: document.getElementById('tutorialText'),
             skipTutorial: document.getElementById('skipTutorial'),
-            nextTutorial: document.getElementById('nextTutorial')
+            nextTutorial: document.getElementById('nextTutorial'),
+            currentZone: document.getElementById('currentZone') // Added for zone display
         };
     }
 
@@ -266,8 +267,30 @@ class UISystem {
         // Update ability cooldown
         this.updateAbilityDisplay();
         
+        // Update zone information for expanded map
+        this.updateZoneDisplay(gameState);
+        
         // Update minimap
         this.updateMinimap(gameState);
+    }
+    
+    updateZoneDisplay(gameState) {
+        if (!window.game || !gameState.player) return;
+        
+        const currentZone = window.game.getPlayerZone(gameState.player);
+        const zoneElement = document.getElementById('currentZone');
+        
+        if (zoneElement) {
+            if (currentZone) {
+                zoneElement.textContent = `Zone: ${currentZone.zone.name}`;
+                zoneElement.style.color = currentZone.zone.color;
+                zoneElement.style.display = 'block';
+            } else {
+                zoneElement.textContent = 'Zone: Neutral Territory';
+                zoneElement.style.color = '#ffffff';
+                zoneElement.style.display = 'block';
+            }
+        }
     }
 
     updateXPDisplay() {
@@ -354,9 +377,37 @@ class UISystem {
         // Calculate scale
         const scale = Math.min(canvas.width / GameConstants.ARENA_WIDTH, canvas.height / GameConstants.ARENA_HEIGHT);
         
+        // Draw zone boundaries and colors
+        if (GameConstants.ZONES) {
+            Object.entries(GameConstants.ZONES).forEach(([zoneKey, zone]) => {
+                const bounds = zone.bounds;
+                const x = bounds.x * scale;
+                const y = bounds.y * scale;
+                const width = bounds.width * scale;
+                const height = bounds.height * scale;
+                
+                // Fill zone with semi-transparent color
+                ctx.fillStyle = zone.color + '20'; // Very transparent
+                ctx.fillRect(x, y, width, height);
+                
+                // Draw zone boundary
+                ctx.strokeStyle = zone.color + '80'; // Semi-transparent
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, width, height);
+                
+                // Zone name (if minimap is large enough)
+                if (canvas.width > 150) {
+                    ctx.fillStyle = zone.color;
+                    ctx.font = '8px Orbitron';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(zone.name.split(' ')[0], x + width/2, y + height/2);
+                }
+            });
+        }
+        
         // Draw arena boundary
         ctx.strokeStyle = 'rgba(255, 107, 107, 0.5)';
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 2;
         ctx.strokeRect(0, 0, GameConstants.ARENA_WIDTH * scale, GameConstants.ARENA_HEIGHT * scale);
         
         // Draw temporal rifts
