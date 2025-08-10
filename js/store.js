@@ -1150,12 +1150,25 @@ class StoreSystem {
         GameUtils.saveToLocalStorage('store_data', storeData);
     }
 
+    addFreeItems() {
+        // Add all free items to owned items
+        const allItems = this.getAllItems();
+        allItems.forEach(item => {
+            if (item.price === 0) {
+                this.ownedItems.add(item.id);
+            }
+        });
+    }
+
     loadFromStorage() {
         const storeData = GameUtils.loadFromLocalStorage('store_data', {});
         
         if (storeData.ownedItems) {
             this.ownedItems = new Set(storeData.ownedItems);
         }
+        
+        // Ensure free items are always owned
+        this.addFreeItems();
         
         if (storeData.chronoPassData) {
             // Merge with default data to handle new properties

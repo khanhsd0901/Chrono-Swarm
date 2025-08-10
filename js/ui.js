@@ -229,6 +229,10 @@ class UISystem {
         
         // Hide main menu and show game
         this.hideAllScreens();
+        
+        // Show game canvas and HUD
+        this.elements.gameCanvas?.classList.remove('hidden');
+        this.elements.gameHUD?.classList.remove('hidden');
         this.currentScreen = 'game';
         
         // Check if first time player for tutorial
@@ -505,12 +509,16 @@ class UISystem {
         
         this.elements.storeItems.innerHTML = '';
         
+        // Get currently equipped items
+        const equippedCosmetics = window.storeSystem?.getEquippedCosmetics() || {};
+        
         items.forEach(item => {
             const itemElement = document.createElement('div');
             itemElement.className = 'store-item';
             
             const isOwned = window.storeSystem?.isOwned(item.id) || false;
-            const canAfford = window.playerProgression?.chronoShards >= item.price;
+            const canAfford = window.storeSystem?.canAfford(item.id) || false;
+            const isEquipped = equippedCosmetics[item.type] === item.id;
             
             if (isOwned) {
                 itemElement.classList.add('owned');
@@ -518,14 +526,23 @@ class UISystem {
                 itemElement.classList.add('locked');
             }
             
+            if (isEquipped) {
+                itemElement.classList.add('equipped');
+            }
+            
+            // Determine currency display
+            const currency = item.currency || 'shards';
+            const currencySymbol = currency === 'experience' ? 'XP' : 'Shards';
+            
             itemElement.innerHTML = `
                 <div class="item-preview" style="background: ${item.preview || '#333'}"></div>
                 <div class="item-info">
                     <h4 class="item-name">${item.name}</h4>
                     <p class="item-description">${item.description}</p>
                     <div class="item-footer">
-                        <span class="item-price">${isOwned ? 'OWNED' : `${item.price} Shards`}</span>
-                        ${!isOwned ? `<button class="buy-button" ${!canAfford ? 'disabled' : ''}>BUY</button>` : ''}
+                        <span class="item-price">${isEquipped ? 'EQUIPPED' : isOwned ? 'OWNED' : `${item.price} ${currencySymbol}`}</span>
+                        ${!isOwned ? `<button class="buy-button" ${!canAfford ? 'disabled' : ''}>BUY</button>` : 
+                          isOwned && !isEquipped ? `<button class="equip-button">EQUIP</button>` : ''}
                     </div>
                 </div>
             `;
@@ -534,6 +551,12 @@ class UISystem {
             const buyButton = itemElement.querySelector('.buy-button');
             if (buyButton && !isOwned && canAfford) {
                 buyButton.addEventListener('click', () => this.purchaseItem(item));
+            }
+            
+            // Add equip handler
+            const equipButton = itemElement.querySelector('.equip-button');
+            if (equipButton && isOwned && !isEquipped) {
+                equipButton.addEventListener('click', () => this.equipItem(item));
             }
             
             this.elements.storeItems.appendChild(itemElement);
@@ -551,6 +574,19 @@ class UISystem {
             }
         } else {
             this.showNotification('Purchase failed!', 'error');
+        }
+    }
+    
+    equipItem(item) {
+        if (window.storeSystem?.equipCosmetic(item.id, item.type)) {
+            this.showNotification(`Equipped ${item.name}!`, 'success');
+            this.refreshStore();
+            
+            if (window.audioSystem) {
+                window.audioSystem.playUISound('click');
+            }
+        } else {
+            this.showNotification('Equip failed!', 'error');
         }
     }
 
@@ -758,6 +794,10 @@ class UISystem {
         }
         
         this.hideAllScreens();
+        
+        // Show game canvas and HUD
+        this.elements.gameCanvas?.classList.remove('hidden');
+        this.elements.gameHUD?.classList.remove('hidden');
         this.currentScreen = 'game';
         
         if (window.audioSystem) {
