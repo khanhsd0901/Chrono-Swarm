@@ -51,14 +51,19 @@ class Cell extends Entity {
         // Update position with velocity
         this.position = Vector2.add(this.position, Vector2.multiply(this.velocity, deltaTime / 1000));
         
-        // Apply friction
-        this.velocity = Vector2.multiply(this.velocity, GameConstants.FRICTION);
+        // Dynamic friction based on velocity for more responsive movement
+        const velocityMagnitude = Vector2.magnitude(this.velocity);
+        const dynamicFriction = velocityMagnitude > 100 ? 
+            GameConstants.FRICTION * 0.98 : // Less friction when moving fast
+            GameConstants.FRICTION;
         
-        // Update trail
-        this.updateTrail();
+        this.velocity = Vector2.multiply(this.velocity, dynamicFriction);
+        
+        // Update trail with velocity-based length for visual feedback
+        this.updateTrail(velocityMagnitude);
         
         // Update visual effects
-        this.updateVisualEffects(deltaTime);
+        this.updateVisualEffects(deltaTime, velocityMagnitude);
         
         // Check recombine timer
         if (!this.canRecombine && Date.now() - this.lastSplitTime > GameConstants.RECOMBINE_TIME) {
@@ -66,14 +71,15 @@ class Cell extends Entity {
         }
     }
 
-    updateTrail() {
+    updateTrail(velocityMagnitude) {
+        const trailLength = Math.max(1, Math.floor(velocityMagnitude / 10)); // Shorter trail when moving fast
         this.trail.push(this.position.clone());
-        if (this.trail.length > this.maxTrailLength) {
+        if (this.trail.length > trailLength) {
             this.trail.shift();
         }
     }
 
-    updateVisualEffects(deltaTime) {
+    updateVisualEffects(deltaTime, velocityMagnitude) {
         this.pulsePhase += deltaTime * 0.003;
         
         // Update sparkles
@@ -84,22 +90,31 @@ class Cell extends Entity {
             return sparkle.life > 0;
         });
         
-        // Add new sparkles occasionally
-        if (Math.random() < 0.02 && this.sparkles.length < this.maxSparkles) {
-            this.addSparkle();
+        // Add new sparkles based on movement speed for dynamic visual feedback
+        const sparkleRate = velocityMagnitude > 50 ? 0.05 : 0.02; // More sparkles when moving fast
+        const maxSparkles = velocityMagnitude > 100 ? this.maxSparkles * 2 : this.maxSparkles;
+        
+        if (Math.random() < sparkleRate && this.sparkles.length < maxSparkles) {
+            this.addSparkle(velocityMagnitude);
         }
+        
+        // Add speed-based glow effect
+        this.glowIntensity = Math.min(1, velocityMagnitude / 150);
     }
 
-    addSparkle() {
+    addSparkle(velocityMagnitude = 0) {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * this.radius * 0.8;
+        
+        // Enhanced sparkles based on movement speed
+        const speedBonus = velocityMagnitude > 50 ? 1.5 : 1;
         const sparkle = {
             position: Vector2.add(this.position, Vector2.fromAngle(angle, distance)),
-            velocity: Vector2.fromAngle(angle, MathUtils.random(10, 30)),
-            life: MathUtils.random(500, 1000),
-            maxLife: 1000,
+            velocity: Vector2.fromAngle(angle, MathUtils.random(10 * speedBonus, 30 * speedBonus)),
+            life: MathUtils.random(500, 1000 * speedBonus),
+            maxLife: 1000 * speedBonus,
             alpha: 1,
-            size: MathUtils.random(1, 3)
+            size: MathUtils.random(1, 3 * speedBonus)
         };
         this.sparkles.push(sparkle);
     }
@@ -132,14 +147,17 @@ class Cell extends Entity {
         ctx.arc(screenPos.x, screenPos.y, screenRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Outer glow
-        if (this.glowIntensity > 0) {
+        // Outer glow enhanced with movement-based intensity
+        const totalGlow = Math.max(this.glowIntensity, 0.2); // Minimum glow
+        if (totalGlow > 0) {
             ctx.shadowColor = this.color.toString();
-            ctx.shadowBlur = 20 * this.glowIntensity;
+            ctx.shadowBlur = 20 * totalGlow;
+            ctx.globalAlpha = totalGlow * 0.5;
             ctx.beginPath();
-            ctx.arc(screenPos.x, screenPos.y, screenRadius, 0, Math.PI * 2);
+            ctx.arc(screenPos.x, screenPos.y, screenRadius * (1 + totalGlow * 0.2), 0, Math.PI * 2);
             ctx.stroke();
             ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
         }
         
         // Render sparkles
