@@ -1505,8 +1505,10 @@ class GameEngine {
         this.lastMysteryZoneSpawn = 0;
         
         // Load initial chunks around player spawn point
-        const playerPos = this.player.getCenterPosition();
-        this.chunkManager.update(playerPos, Date.now());
+        if (this.chunkManager) {
+            const playerPos = this.player.getCenterPosition();
+            this.chunkManager.update(playerPos, Date.now());
+        }
         
         // Generate initial exploration entities
         this.generateInitialExplorationEntities();
@@ -1563,7 +1565,7 @@ class GameEngine {
             }
             
             // Check if position is in loaded chunk
-            if (!this.chunkManager.isPositionLoaded(position.x, position.y)) {
+            if (this.chunkManager && !this.chunkManager.isPositionLoaded(position.x, position.y)) {
                 attempts++;
                 continue;
             }
@@ -1721,8 +1723,10 @@ class GameEngine {
         this.camera.update(deltaTime);
         
         // Update chunk loading based on player position
-        const playerPos = this.player.getCenterPosition();
-        this.chunkManager.update(playerPos, Date.now());
+        if (this.chunkManager) {
+            const playerPos = this.player.getCenterPosition();
+            this.chunkManager.update(playerPos, Date.now());
+        }
         
         // Update abilities
         this.abilityManager.update(deltaTime);
@@ -2124,7 +2128,7 @@ class GameEngine {
         const baseSpawnChance = GameConstants.MATTER_SPAWN_RATE * (deltaTime / 1000);
         
         // Only spawn in loaded chunks to reduce unnecessary computation
-        const loadedChunks = this.chunkManager.getLoadedChunks();
+        const loadedChunks = this.chunkManager ? this.chunkManager.getLoadedChunks() : [];
         
         // Zone-aware spawning with enhanced rates in special zones
         Object.entries(GameConstants.ZONES).forEach(([zoneKey, zone]) => {
@@ -2143,7 +2147,7 @@ class GameEngine {
                         MathUtils.random(zone.bounds.y, zone.bounds.y + zone.bounds.height)
                     );
                     attempts++;
-                } while ((this.isPositionTooCloseToRifts(position, 50) || !this.chunkManager.isPositionLoaded(position.x, position.y)) && attempts < 20);
+                } while ((this.isPositionTooCloseToRifts(position, 50) || (this.chunkManager && !this.chunkManager.isPositionLoaded(position.x, position.y))) && attempts < 20);
                 
                 if (attempts < 20) {
                     const matter = new ChronoMatter(position.x, position.y);
@@ -2345,7 +2349,7 @@ class GameEngine {
 
     renderDebugInfo() {
         if (this.keys.has('KeyF')) { // Show debug info when F is held
-            const chunkInfo = this.chunkManager.getChunkInfo();
+            const chunkInfo = this.chunkManager ? this.chunkManager.getChunkInfo() : { loaded: 0, total: 0, areas: [] };
             
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
             this.ctx.fillRect(10, 10, 200, 150);
