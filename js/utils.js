@@ -1024,6 +1024,38 @@ class ChunkManager {
     }
 }
 
+// Game Constants
+const GameConstants = {
+    // Arena dimensions (expanded from default)
+    ARENA_WIDTH: 6000,  // Expanded from 3000
+    ARENA_HEIGHT: 6000, // Expanded from 3000
+    
+    // Camera settings
+    CAMERA_SMOOTH: 0.1,
+    ZOOM_SMOOTH: 0.05,
+    
+    // Chunk system (if used)
+    CHUNK_SIZE: 1000,
+    
+    // Gameplay constants
+    INITIAL_PLAYER_MASS: 100,
+    MAX_CELLS_PER_PLAYER: 16,
+    
+    // Matter spawn settings
+    MATTER_SPAWN_RATE: 2.0, // Increased for denser item spawning
+    MATTER_DENSITY: 3.0,    // Increased density
+    MAX_MATTER_COUNT: 800,  // Increased from typical values
+    
+    // AI settings  
+    MAX_AI_PLAYERS: 25,     // Increased from typical 10-15
+    
+    // Other gameplay constants
+    FRICTION: 0.92,
+    TERRITORY_UPDATE_INTERVAL: 1000,
+    DAILY_AD_LIMIT: 3,
+    AD_REWARD_SHARDS: 50
+};
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { Vector2, Color, MathUtils, GameUtils, GameConstants, ChunkManager };
