@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chrono-Swarm - Temporal Arena Combat</title>
+    <meta name="description" content="Command a swarm of temporal energy in this competitive multiplayer arena game. Master time-manipulation abilities and dominate the leaderboard.">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <h1 class="game-title">CHRONO-SWARM</h1>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loadingProgress"></div>
+            </div>
+            <p class="loading-text">Initializing temporal matrices...</p>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="mainMenu" class="main-menu hidden">
+        <div class="menu-background"></div>
+        <div class="menu-content">
+            <h1 class="game-title">CHRONO-SWARM</h1>
+            <div class="menu-section">
+                <input type="text" id="playerName" placeholder="Enter your name" maxlength="20" value="Anonymous">
+                <button id="playButton" class="play-button">ENTER THE ARENA</button>
+            </div>
+            <div class="menu-buttons">
+                <button id="storeButton" class="menu-btn">STORE</button>
+                <button id="chronoPassButton" class="menu-btn">CHRONO-PASS</button>
+                <button id="settingsButton" class="menu-btn">SETTINGS</button>
+            </div>
+            <div class="player-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Level</span>
+                    <span class="stat-value" id="playerLevel">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Chrono-Shards</span>
+                    <span class="stat-value" id="chronoShards">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" class="hidden"></canvas>
+
+    <!-- Game HUD -->
+    <div id="gameHUD" class="hud hidden">
+        <!-- Top HUD -->
+        <div class="hud-top">
+            <div class="leaderboard">
+                <h3>TOP PLAYERS</h3>
+                <div id="leaderboardList" class="leaderboard-list"></div>
+            </div>
+        </div>
+
+        <!-- Bottom HUD -->
+        <div class="hud-bottom">
+            <div class="hud-left">
+                <canvas id="minimap" class="minimap"></canvas>
+            </div>
+            <div class="hud-center">
+                <div class="player-mass">
+                    <span id="playerMass">100</span>
+                    <span class="mass-label">MASS</span>
+                </div>
+                <div class="xp-bar">
+                    <div class="xp-progress" id="xpProgress"></div>
+                    <span class="xp-text" id="xpText">Level 1 - 0/500 XP</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="ability-panel">
+                    <div class="ability-slot" id="chronoAbility">
+                        <div class="ability-icon" id="abilityIcon"></div>
+                        <div class="ability-cooldown" id="abilityCooldown"></div>
+                        <span class="ability-key">Q</span>
+                    </div>
+                    <div class="core-abilities">
+                        <div class="core-ability">
+                            <div class="ability-icon split-icon"></div>
+                            <span class="ability-key">SPACE</span>
+                        </div>
+                        <div class="core-ability">
+                            <div class="ability-icon eject-icon"></div>
+                            <span class="ability-key">W</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Store Modal -->
+    <div id="storeModal" class="modal hidden">
+        <div class="modal-content store-content">
+            <div class="modal-header">
+                <h2>CHRONO STORE</h2>
+                <button class="close-btn" id="closeStore">&times;</button>
+            </div>
+            <div class="store-tabs">
+                <button class="store-tab active" data-tab="evolutions">Evolutions</button>
+                <button class="store-tab" data-tab="effects">Effects</button>
+                <button class="store-tab" data-tab="trails">Trails</button>
+            </div>
+            <div class="store-items" id="storeItems"></div>
+        </div>
+    </div>
+
+    <!-- Chrono-Pass Modal -->
+    <div id="chronoPassModal" class="modal hidden">
+        <div class="modal-content pass-content">
+            <div class="modal-header">
+                <h2>CHRONO-PASS SEASON 1</h2>
+                <button class="close-btn" id="closeChronoPass">&times;</button>
+            </div>
+            <div class="pass-progress">
+                <div class="pass-tier-track" id="passTierTrack"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content settings-content">
+            <div class="modal-header">
+                <h2>SETTINGS</h2>
+                <button class="close-btn" id="closeSettings">&times;</button>
+            </div>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label>Master Volume</label>
+                    <input type="range" id="masterVolume" min="0" max="100" value="50">
+                    <span id="masterVolumeValue">50%</span>
+                </div>
+                <div class="setting-item">
+                    <label>Music Volume</label>
+                    <input type="range" id="musicVolume" min="0" max="100" value="30">
+                    <span id="musicVolumeValue">30%</span>
+                </div>
+                <div class="setting-item">
+                    <label>SFX Volume</label>
+                    <input type="range" id="sfxVolume" min="0" max="100" value="70">
+                    <span id="sfxVolumeValue">70%</span>
+                </div>
+                <div class="setting-item">
+                    <label>Graphics Quality</label>
+                    <select id="graphicsQuality">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label>Show Minimap</label>
+                    <input type="checkbox" id="showMinimap" checked>
+                </div>
+                <div class="setting-item">
+                    <label>Show Damage Numbers</label>
+                    <input type="checkbox" id="showDamageNumbers" checked>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Death Screen -->
+    <div id="deathScreen" class="death-screen hidden">
+        <div class="death-content">
+            <h2 class="death-title">TEMPORAL DISRUPTION</h2>
+            <div class="death-stats">
+                <div class="stat-row">
+                    <span>Final Mass:</span>
+                    <span id="finalMass">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Best Rank:</span>
+                    <span id="bestRank">-</span>
+                </div>
+                <div class="stat-row">
+                    <span>Survival Time:</span>
+                    <span id="survivalTime">0s</span>
+                </div>
+                <div class="stat-row">
+                    <span>XP Gained:</span>
+                    <span id="xpGained">0</span>
+                </div>
+            </div>
+            <div class="death-actions">
+                <button id="respawnButton" class="respawn-btn">RESPAWN</button>
+                <button id="mainMenuButton" class="menu-btn-death">MAIN MENU</button>
+                <button id="watchAdButton" class="ad-btn">Watch Ad (+50 Shards)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial Overlay -->
+    <div id="tutorialOverlay" class="tutorial-overlay hidden">
+        <div class="tutorial-content">
+            <h3 id="tutorialTitle">Welcome to Chrono-Swarm</h3>
+            <p id="tutorialText">Move your swarm with the mouse to consume Chrono-Matter and grow larger.</p>
+            <div class="tutorial-controls">
+                <button id="skipTutorial">Skip Tutorial</button>
+                <button id="nextTutorial">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/abilities.js"></script>
+    <script src="js/progression.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
