@@ -1420,26 +1420,37 @@ class GameEngine {
 
     setupInputHandlers() {
         // Mouse handling - Enhanced for consistent tracking
-        this.canvas.addEventListener('mousemove', (e) => {
+        // Use document-level mouse tracking to prevent UI hover interference
+        document.addEventListener('mousemove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             this.mouse.x = e.clientX - rect.left;
             this.mouse.y = e.clientY - rect.top;
             
-            // Ensure camera exists before converting coordinates
-            if (this.camera) {
+            // Check if mouse is within canvas bounds
+            this.mouseInCanvas = this.mouse.x >= 0 && this.mouse.x <= this.canvas.width &&
+                               this.mouse.y >= 0 && this.mouse.y <= this.canvas.height;
+            
+            // Always update world coordinates when mouse is in canvas
+            if (this.camera && this.mouseInCanvas) {
                 const worldPos = this.camera.screenToWorld(new Vector2(this.mouse.x, this.mouse.y));
                 this.mouse.worldX = worldPos.x;
                 this.mouse.worldY = worldPos.y;
             }
         });
 
-        // Add mouse enter/leave tracking to ensure consistent behavior
+        // Keep canvas-specific handlers for additional context
         this.canvas.addEventListener('mouseenter', (e) => {
             this.mouseInCanvas = true;
         });
         
         this.canvas.addEventListener('mouseleave', (e) => {
-            this.mouseInCanvas = false;
+            // Only set to false if mouse actually left canvas bounds
+            const rect = this.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            if (x < 0 || x > this.canvas.width || y < 0 || y > this.canvas.height) {
+                this.mouseInCanvas = false;
+            }
         });
         
         // Initialize mouse tracking state

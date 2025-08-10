@@ -13,8 +13,7 @@ class PlayerProgression {
         this.unlockedCosmetics = new Set();
         this.achievements = new Set();
         this.currentSeason = 1;
-        this.chronoPassTier = 1;
-        this.chronoPassPremium = false;
+        // Chrono-pass removed
         this.lastPlayDate = null;
         this.playtime = 0; // Total playtime in milliseconds
         
@@ -425,8 +424,7 @@ class PlayerProgression {
             // Check achievements
             this.checkAchievements(gameResults);
             
-            // Update Chrono-Pass
-            this.gainChronoPassXP(xpGained.total);
+            // Chrono-pass removed
             
             this.sessionStartTime = null;
             this.saveProgression();
@@ -484,8 +482,8 @@ class PlayerProgression {
             unlockedFormations: Array.from(this.unlockedFormations),
             unlockedCosmetics: Array.from(this.unlockedCosmetics),
             achievements: Array.from(this.achievements),
-            chronoPassTier: this.chronoPassTier,
-            chronoPassPremium: this.chronoPassPremium,
+            // chronoPassTier: removed,
+            // chronoPassPremium: removed,
             playtime: this.playtime
         };
     }
@@ -505,8 +503,8 @@ class PlayerProgression {
             unlockedFormations: Array.from(this.unlockedFormations),
             unlockedCosmetics: Array.from(this.unlockedCosmetics),
             achievements: Array.from(this.achievements),
-            chronoPassTier: this.chronoPassTier,
-            chronoPassPremium: this.chronoPassPremium,
+            // chronoPassTier: removed,
+            // chronoPassPremium: removed,
             lastPlayDate: this.lastPlayDate,
             playtime: this.playtime,
             statistics: this.statistics.getSaveData()
@@ -526,8 +524,7 @@ class PlayerProgression {
         if (data.unlockedFormations) this.unlockedFormations = new Set(data.unlockedFormations);
         if (data.unlockedCosmetics) this.unlockedCosmetics = new Set(data.unlockedCosmetics);
         if (data.achievements) this.achievements = new Set(data.achievements);
-        if (data.chronoPassTier) this.chronoPassTier = data.chronoPassTier;
-        if (data.chronoPassPremium) this.chronoPassPremium = data.chronoPassPremium;
+        // Chrono-pass loading removed
         if (data.lastPlayDate) this.lastPlayDate = data.lastPlayDate;
         if (data.playtime) this.playtime = data.playtime;
         if (data.statistics) this.statistics.loadSaveData(data.statistics);
