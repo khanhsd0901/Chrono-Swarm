@@ -2131,17 +2131,6 @@ class GameEngine {
     requestAnimationFrame(() => this.gameLoop());
   }
 
-  render() {
-    // Clear main canvas
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-    // Render game world
-    this.renderWorld();
-
-    // Update UI including minimap
-    this.updateUI();
-  }
-
   renderWorld() {
     // Set camera transform
     this.ctx.save();
@@ -4266,10 +4255,6 @@ class GameEngine {
     if (window.audioSystem) {
       window.audioSystem.playGameSound("event_trigger");
     }
-  }
-
-  announceEvent(eventType) {
-    console.log(`🎯 Event triggered: ${eventType}`);
   }
 
   // Zone Management System
