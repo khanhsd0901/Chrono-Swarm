@@ -51,6 +51,25 @@ class Cell extends Entity {
         // Update position with velocity
         this.position = Vector2.add(this.position, Vector2.multiply(this.velocity, deltaTime / 1000));
         
+        // Enforce arena boundaries - prevent cells from leaving the arena
+        if (typeof GameConstants !== 'undefined') {
+            const padding = GameConstants.ARENA_PADDING || 100;
+            const maxX = GameConstants.ARENA_WIDTH - padding;
+            const maxY = GameConstants.ARENA_HEIGHT - padding;
+            
+            // Clamp position to arena bounds
+            this.position.x = Math.max(padding, Math.min(maxX, this.position.x));
+            this.position.y = Math.max(padding, Math.min(maxY, this.position.y));
+            
+            // Bounce velocity if hitting boundaries
+            if (this.position.x <= padding || this.position.x >= maxX) {
+                this.velocity.x *= -0.5; // Reduce velocity and reverse direction
+            }
+            if (this.position.y <= padding || this.position.y >= maxY) {
+                this.velocity.y *= -0.5; // Reduce velocity and reverse direction
+            }
+        }
+        
         // Dynamic friction based on velocity for more responsive movement
         const velocityMagnitude = Vector2.magnitude(this.velocity);
         const dynamicFriction = velocityMagnitude > 100 ? 
@@ -352,6 +371,7 @@ class ChronoMatter extends Entity {
         this.pulsePhase = Math.random() * Math.PI * 2;
         this.hue = Math.random() * 60 + 180; // Blue-cyan range
         this.color = GameUtils.generateHSLColor(this.hue, 80, 60);
+        this.massMultiplier = 1; // For dynamic events
     }
 
     update(deltaTime) {
@@ -368,25 +388,47 @@ class ChronoMatter extends Entity {
         const pulseScale = 1 + Math.sin(this.pulsePhase) * 0.2;
         const finalRadius = screenRadius * pulseScale;
         
+        // Enhanced glow for mass surge events
+        const glowMultiplier = this.massMultiplier > 1 ? this.massMultiplier : 1;
+        
         // Glow effect
         const gradient = ctx.createRadialGradient(
             screenPos.x, screenPos.y, 0,
-            screenPos.x, screenPos.y, finalRadius * 2
+            screenPos.x, screenPos.y, finalRadius * 2 * glowMultiplier
         );
-        gradient.addColorStop(0, this.color.toString());
-        gradient.addColorStop(0.5, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.5)`);
-        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        
+        if (this.massMultiplier > 1) {
+            // Special colors for enhanced matter
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 1)'); // Gold core
+            gradient.addColorStop(0.5, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.8)`);
+            gradient.addColorStop(1, 'rgba(255, 215, 0, 0.2)');
+        } else {
+            gradient.addColorStop(0, this.color.toString());
+            gradient.addColorStop(0.5, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0.5)`);
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        }
         
         ctx.fillStyle = gradient;
         ctx.beginPath();
-        ctx.arc(screenPos.x, screenPos.y, finalRadius * 2, 0, Math.PI * 2);
+        ctx.arc(screenPos.x, screenPos.y, finalRadius * 2 * glowMultiplier, 0, Math.PI * 2);
         ctx.fill();
         
-        // Core
-        ctx.fillStyle = this.color.toString();
+        // Core with enhanced effect for mass surge
+        if (this.massMultiplier > 1) {
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 2;
+        } else {
+            ctx.fillStyle = this.color.toString();
+        }
+        
         ctx.beginPath();
         ctx.arc(screenPos.x, screenPos.y, finalRadius, 0, Math.PI * 2);
         ctx.fill();
+        
+        if (this.massMultiplier > 1) {
+            ctx.stroke();
+        }
     }
 
     canBeConsumedBy(cell) {
@@ -396,7 +438,7 @@ class ChronoMatter extends Entity {
 
     consume() {
         this.destroy();
-        return this.mass;
+        return this.mass * this.massMultiplier;
     }
 }
 

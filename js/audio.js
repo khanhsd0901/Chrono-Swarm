@@ -110,6 +110,7 @@ class AudioSystem {
             'achievement': { type: 'generated', freq: 1800, duration: 1.5 },
             'death': { type: 'generated', freq: 100, duration: 2.0 },
             'respawn': { type: 'generated', freq: 1000, duration: 0.8 },
+            'event_trigger': { type: 'generated', freq: 800, duration: 1.0 },
             
             // Ambient
             'ambient_hum': { type: 'generated', freq: 60, duration: 5.0, loop: true },
