@@ -1084,8 +1084,8 @@ class UISystem {
 
   updateLeaderboard(gameEngine) {
     if (!this.elements.leaderboardList) return;
-    if (!gameEngine || !gameEngine.player) return;
-    if (!gameEngine.aiPlayers) gameEngine.aiPlayers = [];
+    if (!gameEngine.aiPlayers || !Array.isArray(gameEngine.aiPlayers)) return;
+
     // Get all players and sort by mass
     const allPlayers = [gameEngine.player, ...gameEngine.aiPlayers]
       .filter((p) => p && p.isAlive)
