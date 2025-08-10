@@ -356,10 +356,68 @@ class GameUtils {
 
 // Constants used throughout the game
 const GameConstants = {
-    // Arena settings
-    ARENA_WIDTH: 4000,
-    ARENA_HEIGHT: 4000,
-    ARENA_PADDING: 100,
+    // Arena settings - Significantly expanded
+    ARENA_WIDTH: 12000,  // Tripled from 4000
+    ARENA_HEIGHT: 12000, // Tripled from 4000
+    ARENA_PADDING: 200,  // Increased padding
+    
+    // Zone definitions for the expanded map
+    ZONES: {
+        CENTER: {
+            name: 'Central Nexus',
+            bounds: { x: 5000, y: 5000, width: 2000, height: 2000 },
+            color: '#00ffff',
+            effects: { matterSpawnRate: 1.5, experienceBonus: 1.2 }
+        },
+        NORTH_FROZEN: {
+            name: 'Frozen Wastes',
+            bounds: { x: 0, y: 0, width: 12000, height: 2000 },
+            color: '#87ceeb',
+            effects: { speedMultiplier: 0.7, matterSpawnRate: 0.8 }
+        },
+        SOUTH_VOLCANIC: {
+            name: 'Volcanic Depths',
+            bounds: { x: 0, y: 10000, width: 12000, height: 2000 },
+            color: '#ff4500',
+            effects: { speedMultiplier: 1.3, damageMultiplier: 1.1 }
+        },
+        WEST_VOID: {
+            name: 'Void Expanse',
+            bounds: { x: 0, y: 2000, width: 2000, height: 8000 },
+            color: '#800080',
+            effects: { matterSpawnRate: 0.5, voidDamage: true }
+        },
+        EAST_ENERGY: {
+            name: 'Energy Fields',
+            bounds: { x: 10000, y: 2000, width: 2000, height: 8000 },
+            color: '#ffff00',
+            effects: { speedMultiplier: 1.2, energyRegeneration: true }
+        },
+        NORTHWEST_CHAOS: {
+            name: 'Chaos Realm',
+            bounds: { x: 2000, y: 2000, width: 3000, height: 3000 },
+            color: '#ff00ff',
+            effects: { randomEvents: true, chaosMultiplier: 1.5 }
+        },
+        NORTHEAST_CRYSTAL: {
+            name: 'Crystal Gardens',
+            bounds: { x: 7000, y: 2000, width: 3000, height: 3000 },
+            color: '#00ff00',
+            effects: { matterSpawnRate: 2.0, crystalBonus: true }
+        },
+        SOUTHWEST_SHADOW: {
+            name: 'Shadow Valley',
+            bounds: { x: 2000, y: 7000, width: 3000, height: 3000 },
+            color: '#696969',
+            effects: { stealth: true, speedMultiplier: 1.1 }
+        },
+        SOUTHEAST_TEMPORAL: {
+            name: 'Temporal Nexus',
+            bounds: { x: 7000, y: 7000, width: 3000, height: 3000 },
+            color: '#ffd700',
+            effects: { timeDistortion: true, abilityBonus: 1.3 }
+        }
+    },
 
     // Player settings
     INITIAL_MASS: 100,
@@ -373,17 +431,20 @@ const GameConstants = {
     FRICTION: 0.97, // Reduced friction for smoother movement
     COLLISION_DAMPING: 0.85, // Slightly increased for better collisions
 
-    // Chrono-Matter
-    MATTER_SPAWN_RATE: 0.3, // per second
+    // Chrono-Matter - Adjusted for larger map
+    MATTER_SPAWN_RATE: 0.5, // Increased for larger map
     MATTER_VALUE: 2,
     MATTER_RADIUS: 4,
-    MAX_MATTER_COUNT: 800,
+    MAX_MATTER_COUNT: 2000, // Increased for larger map
 
-    // Temporal Rifts
-    RIFT_COUNT: 15,
+    // Temporal Rifts - Adjusted for larger map
+    RIFT_COUNT: 40, // Increased for larger map
     RIFT_MIN_RADIUS: 30,
     RIFT_MAX_RADIUS: 60,
     RIFT_DAMAGE_THRESHOLD: 1.2, // Mass ratio to be damaged
+
+    // AI Players - Increased for larger map
+    AI_COUNT: 25, // Increased from default for larger arena
 
     // Abilities
     STASIS_FIELD_DURATION: 5000, // 5 seconds
@@ -400,7 +461,7 @@ const GameConstants = {
     REWIND_COST: 0.2, // 20% of current mass
 
     // UI
-    CAMERA_SMOOTH: 0.05,
+    CAMERA_SMOOTH: 0.03, // Reduced for better tracking on larger map
     ZOOM_SMOOTH: 0.1,
     HUD_UPDATE_RATE: 30, // FPS
 
