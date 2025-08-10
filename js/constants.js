@@ -6,12 +6,16 @@ const GameConstants = {
   ARENA_PADDING: 100,
 
   // Player constants
+  INITIAL_MASS: 20,
+  MIN_CELL_MASS: 10,
   MAX_CELLS: 16,
   MIN_SPLIT_MASS: 35,
   MAX_SPLIT_SPEED: 8,
   MIN_EJECT_MASS: 35,
   EJECT_LOSS: 18,
   EJECT_SIZE: 4,
+  RECOMBINE_TIME: 3000,
+  FRICTION: 0.98,
 
   // Game balance
   MAX_AI_PLAYERS: 25,

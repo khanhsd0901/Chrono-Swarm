@@ -514,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    console.log('🔍 Self-test system initialized');
-    console.log('🔧 Press Ctrl+F12 to run manual self-test');
-    console.log('🚨 Press Ctrl+Shift+R for emergency recovery');
+    // Self-test system initialized
+    // Press Ctrl+F12 to run manual self-test
+    // Press Ctrl+Shift+R for emergency recovery
 });

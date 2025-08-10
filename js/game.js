@@ -104,42 +104,52 @@ class Camera {
 
 class Player {
     constructor(name, color, isAI = false) {
-        this.id = GameUtils.generateId();
-        this.name = name;
-        this.color = color;
-        this.cells = [];
-        this.isAI = isAI;
-        this.isAlive = true;
-        this.score = 0;
-        this.kills = 0;
-        this.survivalTime = 0;
-        this.rank = 0;
-        this.level = 1;
-        this.formation = 'default';
-        
-        // Movement history for rewind ability
-        this.movementHistory = [];
-        this.maxHistoryLength = 100; // Store 100 position snapshots
-        this.historyInterval = 50; // Record every 50ms
-        this.lastHistoryRecord = 0;
+        try {
+            this.id = GameUtils.generateId();
+            this.name = name;
+            this.color = color;
+            this.cells = [];
+            this.isAI = isAI;
+            this.isAlive = true;
+            this.score = 0;
+            this.kills = 0;
+            this.survivalTime = 0;
+            this.rank = 0;
+            this.level = 1;
+            this.formation = 'default';
+            
+            // Movement history for rewind ability
+            this.movementHistory = [];
+            this.maxHistoryLength = 100; // Store 100 position snapshots
+            this.historyInterval = 50; // Record every 50ms
+            this.lastHistoryRecord = 0;
 
-        // Initialize with starting cell
-        this.spawn();
+            // Initialize with starting cell
+            this.spawn();
+        } catch (error) {
+            console.error("Error creating Player:", error);
+            throw error;
+        }
     }
 
     spawn() {
-        this.isAlive = true;
-        this.cells = [];
-        
-        // Random spawn position within arena
-        const spawnX = MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING);
-        const spawnY = MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING);
-        
-        const startCell = new Cell(spawnX, spawnY, GameConstants.INITIAL_MASS, this.color, this);
-        this.cells.push(startCell);
-        
-        this.survivalTime = 0;
-        this.score = GameConstants.INITIAL_MASS;
+        try {
+            this.isAlive = true;
+            this.cells = [];
+            
+            // Random spawn position within arena
+            const spawnX = MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING);
+            const spawnY = MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING);
+            
+            const startCell = new Cell(spawnX, spawnY, GameConstants.INITIAL_MASS, this.color, this);
+            this.cells.push(startCell);
+            
+            this.survivalTime = 0;
+            this.score = GameConstants.INITIAL_MASS;
+        } catch (error) {
+            console.error("Error in Player.spawn:", error);
+            throw error;
+        }
     }
 
     update(deltaTime, mousePosition = null) {
@@ -1847,25 +1857,29 @@ class GameEngine {
     }
 
     startGame(playerName) {
-        // Create player
-        const playerColor = GameUtils.getPlayerColor(0);
-        this.player = new Player(playerName, playerColor, false);
-        
-        // Start game loop
-        this.isRunning = true;
-        this.isPaused = false;
-        this.gameTime = 0;
-        this.lastFrameTime = performance.now();
-        this.gameStartTime = Date.now(); // Initialize for dynamic events
-        
-        this.gameLoop();
-        
-        // Show game canvas and HUD
-        this.showGameUI();
-        
-        // Play start sound
-        if (window.audioSystem) {
-            window.audioSystem.playGameSound('respawn');
+        try {
+            // Create player
+            const playerColor = GameUtils.getPlayerColor(0);
+            this.player = new Player(playerName, playerColor, false);
+            
+            // Start game loop
+            this.isRunning = true;
+            this.isPaused = false;
+            this.gameTime = 0;
+            this.lastFrameTime = performance.now();
+            this.gameStartTime = Date.now(); // Initialize for dynamic events
+            
+            this.gameLoop();
+            
+            // Show game canvas and HUD
+            this.showGameUI();
+            
+            // Play start sound
+            if (window.audioSystem) {
+                window.audioSystem.playGameSound('respawn');
+            }
+        } catch (error) {
+            console.error("Error starting game:", error);
         }
     }
 

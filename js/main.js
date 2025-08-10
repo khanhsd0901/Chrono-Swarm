@@ -25,8 +25,6 @@ class ChronoSwarmApp {
 
   async initialize() {
     try {
-      console.log("🎮 Initializing Chrono-Swarm...");
-
       // Initialize systems in order
       await this.initializeSystems();
 
@@ -44,7 +42,6 @@ class ChronoSwarmApp {
       this.systemsReady = true;
 
       console.log("✅ Chrono-Swarm initialized successfully!");
-      console.log("🎯 Systems ready. Welcome to the temporal arena!");
 
       // Show any startup notifications
       this.showStartupNotifications();
@@ -56,56 +53,35 @@ class ChronoSwarmApp {
 
   async initializeSystems() {
     // 1. Audio System (first, as others may need it)
-    console.log("🔊 Initializing Audio System...");
     this.audioSystem = window.audioSystem;
-    if (this.audioSystem) {
-      // Audio system initializes on first user interaction
-      console.log("🔊 Audio System ready");
-    }
 
     // 2. Particle System
-    console.log("✨ Initializing Particle System...");
     this.particleSystem = window.particleSystem;
-    if (this.particleSystem) {
-      console.log("✨ Particle System ready");
-    }
 
     // 3. Player Progression System
-    console.log("📈 Initializing Progression System...");
     this.playerProgression = new PlayerProgression();
     window.playerProgression = this.playerProgression;
-    console.log("📈 Progression System ready");
 
     // 4. Store System
-    console.log("🛒 Initializing Store System...");
     this.storeSystem = window.storeSystem;
     if (this.storeSystem) {
       this.storeSystem.setPlayerProgression(this.playerProgression);
-      console.log("🛒 Store System ready");
     }
 
     // 5. UI System
-    console.log("🖱️ Initializing UI System...");
     this.uiSystem = window.uiSystem;
-    if (this.uiSystem) {
-      console.log("🖱️ UI System ready");
-    }
 
     // 6. Game Engine (last, as it depends on everything else)
-    console.log("🎮 Initializing Game Engine...");
     this.gameEngine = window.game;
     if (this.gameEngine) {
       // Update game engine with our progression system
       this.gameEngine.playerProgression = this.playerProgression;
       this.abilityManager = this.gameEngine.abilityManager;
       window.abilityManager = this.abilityManager;
-      console.log("🎮 Game Engine ready");
     }
   }
 
   connectSystems() {
-    console.log("🔗 Connecting systems...");
-
     // Connect progression to store
     if (this.storeSystem && this.playerProgression) {
       this.storeSystem.setPlayerProgression(this.playerProgression);
@@ -119,8 +95,6 @@ class ChronoSwarmApp {
     // Ensure global references are set
     window.playerProgression = this.playerProgression;
     window.abilityManager = this.abilityManager;
-
-    console.log("🔗 Systems connected");
   }
 
   setupErrorHandling() {

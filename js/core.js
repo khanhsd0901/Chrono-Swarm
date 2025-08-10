@@ -1,36 +1,5 @@
 // Core utilities and constants for Chrono-Swarm
 
-class Vector2 {
-  constructor(x = 0, y = 0) {
-    this.x = x;
-    this.y = y;
-  }
-
-  static add(v1, v2) {
-    return new Vector2(v1.x + v2.x, v1.y + v2.y);
-  }
-
-  static subtract(v1, v2) {
-    return new Vector2(v1.x - v2.x, v1.y - v2.y);
-  }
-
-  static multiply(v, scalar) {
-    return new Vector2(v.x * scalar, v.y * scalar);
-  }
-
-  static distance(v1, v2) {
-    const dx = v2.x - v1.x;
-    const dy = v2.y - v1.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  static normalize(v) {
-    const length = Math.sqrt(v.x * v.x + v.y * v.y);
-    if (length === 0) return new Vector2();
-    return new Vector2(v.x / length, v.y / length);
-  }
-}
-
 class MathUtils {
   static random(min, max) {
     return Math.random() * (max - min) + min;
@@ -76,6 +45,16 @@ class GameUtils {
     const prefixes = ["Chrono", "Temporal", "Quantum", "Void", "Echo"];
     const suffixes = ["Hunter", "Seeker", "Walker", "Drifter", "Runner"];
     return MathUtils.randomChoice(prefixes) + MathUtils.randomChoice(suffixes);
+  }
+
+  static generateAIName() {
+    const prefixes = ["AI", "Bot", "Drone", "Agent", "Unit"];
+    const suffixes = ["Alpha", "Beta", "Gamma", "Delta", "Omega"];
+    return MathUtils.randomChoice(prefixes) + "-" + MathUtils.randomChoice(suffixes);
+  }
+
+  static generateId() {
+    return Math.random().toString(36).substr(2, 9);
   }
 
   static loadFromLocalStorage(key, defaultValue) {
