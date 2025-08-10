@@ -34,7 +34,7 @@ class UISystem {
             playerName: document.getElementById('playerName'),
             playButton: document.getElementById('playButton'),
             storeButton: document.getElementById('storeButton'),
-
+            helpButton: document.getElementById('helpButton'),
             settingsButton: document.getElementById('settingsButton'),
             playerLevel: document.getElementById('playerLevel'),
             chronoShards: document.getElementById('chronoShards'),
@@ -52,12 +52,17 @@ class UISystem {
             // Modals
             storeModal: document.getElementById('storeModal'),
             settingsModal: document.getElementById('settingsModal'),
+            helpModal: document.getElementById('helpModal'),
             closeStore: document.getElementById('closeStore'),
             closeSettings: document.getElementById('closeSettings'),
+            closeHelp: document.getElementById('closeHelp'),
             
             // Store
             storeItems: document.getElementById('storeItems'),
             storeTabs: document.querySelectorAll('.store-tab'),
+            
+            // Help
+            helpTabs: document.querySelectorAll('.help-tab'),
             
 
             
@@ -95,17 +100,22 @@ class UISystem {
         // Main Menu
         this.elements.playButton?.addEventListener('click', () => this.startGame());
         this.elements.storeButton?.addEventListener('click', () => this.openStore());
-
+        this.elements.helpButton?.addEventListener('click', () => this.openHelp());
         this.elements.settingsButton?.addEventListener('click', () => this.openSettings());
         
         // Modal close buttons
         this.elements.closeStore?.addEventListener('click', () => this.closeModal('store'));
-
+        this.elements.closeHelp?.addEventListener('click', () => this.closeModal('help'));
         this.elements.closeSettings?.addEventListener('click', () => this.closeModal('settings'));
         
         // Store tabs
         this.elements.storeTabs?.forEach(tab => {
             tab.addEventListener('click', () => this.switchStoreTab(tab.dataset.tab));
+        });
+        
+        // Help tabs
+        this.elements.helpTabs?.forEach(tab => {
+            tab.addEventListener('click', () => this.switchHelpTab(tab.dataset.tab));
         });
         
         // Settings controls
@@ -896,6 +906,102 @@ class UISystem {
 
     closeAllModals() {
         this.modals.forEach(modalName => this.closeModal(modalName));
+    }
+
+    openStore() {
+        this.openModal('store');
+        if (window.storeSystem) {
+            window.storeSystem.refreshStoreDisplay();
+        }
+        
+        if (window.audioSystem) {
+            window.audioSystem.playUISound('click');
+        }
+    }
+
+    openHelp() {
+        this.openModal('help');
+        // Set default tab to basics
+        this.switchHelpTab('basics');
+        
+        if (window.audioSystem) {
+            window.audioSystem.playUISound('click');
+        }
+    }
+
+    openSettings() {
+        this.openModal('settings');
+        
+        if (window.audioSystem) {
+            window.audioSystem.playUISound('click');
+        }
+    }
+
+    switchHelpTab(tabName) {
+        // Remove active class from all tabs
+        this.elements.helpTabs?.forEach(tab => {
+            tab.classList.remove('active');
+        });
+
+        // Remove active class from all sections
+        document.querySelectorAll('.help-section').forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // Add active class to clicked tab
+        const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+        }
+
+        // Show corresponding section
+        const activeSection = document.getElementById(`help-${tabName}`);
+        if (activeSection) {
+            activeSection.classList.add('active');
+        }
+
+        if (window.audioSystem) {
+            window.audioSystem.playUISound('tab_switch');
+        }
+    }
+
+    updateGameUI(gameEngine) {
+        // Update HUD elements with current game state
+        if (!gameEngine || !gameEngine.player) return;
+
+        // Update player mass
+        if (this.elements.playerMass) {
+            this.elements.playerMass.textContent = Math.floor(gameEngine.player.getTotalMass());
+        }
+
+        // Update leaderboard (simple version)
+        this.updateLeaderboard(gameEngine);
+    }
+
+    updateLeaderboard(gameEngine) {
+        if (!this.elements.leaderboardList) return;
+
+        // Get all players and sort by mass
+        const allPlayers = [gameEngine.player, ...gameEngine.aiPlayers]
+            .filter(p => p && p.isAlive)
+            .sort((a, b) => b.getTotalMass() - a.getTotalMass())
+            .slice(0, 10); // Top 10
+
+        // Update leaderboard display
+        this.elements.leaderboardList.innerHTML = '';
+        allPlayers.forEach((player, index) => {
+            const listItem = document.createElement('div');
+            listItem.className = 'leaderboard-item';
+            listItem.innerHTML = `
+                <span class="rank">${index + 1}</span>
+                <span class="name" style="color: ${player.color}">${player.name}</span>
+                <span class="mass">${Math.floor(player.getTotalMass())}</span>
+            `;
+            if (player === gameEngine.player) {
+                listItem.classList.add('current-player');
+            }
+            this.elements.leaderboardList.appendChild(listItem);
+        });
     }
 
     // Notification System

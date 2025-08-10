@@ -33,7 +33,7 @@
             </div>
             <div class="menu-buttons">
                 <button id="storeButton" class="menu-btn">STORE</button>
-
+                <button id="helpButton" class="menu-btn">HELP</button>
                 <button id="settingsButton" class="menu-btn">SETTINGS</button>
             </div>
             <div class="player-stats">
@@ -158,6 +158,200 @@
                 <div class="setting-item">
                     <label>Show Damage Numbers</label>
                     <input type="checkbox" id="showDamageNumbers" checked>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal hidden">
+        <div class="modal-content help-content">
+            <div class="modal-header">
+                <h2>CHRONO-SWARM GUIDE</h2>
+                <button class="close-btn" id="closeHelp">&times;</button>
+            </div>
+            <div class="help-tabs">
+                <button class="help-tab active" data-tab="basics">Basics</button>
+                <button class="help-tab" data-tab="abilities">Abilities</button>
+                <button class="help-tab" data-tab="events">Events</button>
+                <button class="help-tab" data-tab="tips">Tips</button>
+            </div>
+            <div class="help-content-area">
+                <div class="help-section active" id="help-basics">
+                    <h3>🎮 Game Basics</h3>
+                    <div class="help-item">
+                        <h4>Movement</h4>
+                        <p>Use your <strong>mouse</strong> to control your swarm. Your cells will follow the cursor.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>Growth</h4>
+                        <p>Consume <strong>Chrono-Matter</strong> (glowing particles) to grow larger and stronger.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>Combat</h4>
+                        <p>Absorb smaller players and avoid larger ones. Only consume players smaller than yourself!</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>Splitting</h4>
+                        <p>Press <strong>SPACE</strong> to split your swarm for faster movement or strategic positioning.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>Ejecting Mass</h4>
+                        <p>Press <strong>W</strong> to eject mass towards your cursor. Use this to feed allies or escape danger.</p>
+                    </div>
+                </div>
+                
+                <div class="help-section" id="help-abilities">
+                    <h3>⚡ Chrono Abilities</h3>
+                    <div class="help-item">
+                        <h4>🛡️ Stasis Field</h4>
+                        <p>Create a field that slows down enemies. Perfect for escaping or controlling the battlefield.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>👥 Echo</h4>
+                        <p>Create phantom copies of yourself to confuse enemies and create tactical advantages.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>⏮️ Rewind</h4>
+                        <p>Return to a previous position and state, undoing recent damage or escaping traps.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>Using Abilities</h4>
+                        <p>• Abilities consume mass when used<br>
+                        • Higher level unlocks more abilities<br>
+                        • Each ability has a cooldown period<br>
+                        • Right-click to use current ability</p>
+                    </div>
+                </div>
+                
+                <div class="help-section" id="help-events">
+                    <h3>🌟 Arena Events</h3>
+                    <div class="events-grid">
+                        <div class="event-item">
+                            <h4>⚡ Chrono Storm</h4>
+                            <p>Temporal energy surges - more matter spawns rapidly!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>💥 Mass Surge</h4>
+                            <p>All Chrono-Matter doubles in value temporarily!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🌀 Gravity Shift</h4>
+                            <p>Massive gravitational pull emerges in arena center!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>❄️ Temporal Freeze</h4>
+                            <p>Time slows for some competitors - use advantage!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🌧️ Matter Rain</h4>
+                            <p>Arena floods with energy - feast while you can!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🤖 AI Frenzy</h4>
+                            <p>AI competitors enter aggressive berserker mode!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🚀 Speed Boost</h4>
+                            <p>Everyone moves with lightning speed!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🔥 Shrinking Arena</h4>
+                            <p>Battlefield shrinks - fight for the center!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>💫 Chaos Split</h4>
+                            <p>Unstable energy causes random cell divisions!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🧲 Magnetic Field</h4>
+                            <p>Mysterious forces pull players together!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>⏰ Time Dilation</h4>
+                            <p>Time flows differently across the arena!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>⚖️ Mass Redistribution</h4>
+                            <p>Energy balances across all competitors!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🌟 Teleport Chaos</h4>
+                            <p>Random teleportation rifts appear everywhere!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🔄 Inverted Controls</h4>
+                            <p>Movement controls get scrambled!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>👻 Phantom Swarm</h4>
+                            <p>Ghostly entities hunt the largest players!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🧛 Energy Vampirism</h4>
+                            <p>Consuming others steals their abilities!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🪞 Mirror Dimension</h4>
+                            <p>Parallel arena overlaps - avoid dark reflections!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🕳️ Quantum Tunneling</h4>
+                            <p>Phase through walls and other players!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🧬 Cellular Mitosis</h4>
+                            <p>All cells undergo rapid division chaos!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🔊 Temporal Echo</h4>
+                            <p>Past actions repeat themselves across time!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🕳️ Void Zones</h4>
+                            <p>Dark zones consume everything inside!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🔒 Chrono Lockdown</h4>
+                            <p>No new matter spawns - fight for what remains!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🔗 Quantum Entanglement</h4>
+                            <p>Players become linked - shared effects!</p>
+                        </div>
+                        <div class="event-item">
+                            <h4>🦠 Chrono Plague</h4>
+                            <p>Contagious effect spreads between players!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="help-section" id="help-tips">
+                    <h3>💡 Pro Tips</h3>
+                    <div class="help-item">
+                        <h4>🎯 Strategic Positioning</h4>
+                        <p>Stay near arena edges when small, move to center when large.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>⚡ Ability Timing</h4>
+                        <p>Save abilities for escaping danger or making aggressive plays.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>👀 Map Awareness</h4>
+                        <p>Use the minimap to track threats and opportunities.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>🎮 Event Strategy</h4>
+                        <p>Adapt your playstyle based on active events - some help, others hinder!</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>🔄 Split Management</h4>
+                        <p>Split only when necessary - being divided makes you vulnerable.</p>
+                    </div>
+                    <div class="help-item">
+                        <h4>💰 Resource Management</h4>
+                        <p>Don't waste mass on abilities unless it's crucial for survival or growth.</p>
+                    </div>
                 </div>
             </div>
         </div>

@@ -7,10 +7,10 @@ class Camera {
         this.position = new Vector2(0, 0);
         this.zoom = 1;
         this.targetZoom = 1;
-        this.minZoom = 0.1;
-        this.maxZoom = 2;
-        this.smoothing = GameConstants.CAMERA_SMOOTH;
-        this.zoomSmoothing = GameConstants.ZOOM_SMOOTH;
+        this.minZoom = 0.05; // Allow much more zoom out for large players
+        this.maxZoom = 3;
+        this.smoothing = typeof GameConstants !== 'undefined' ? GameConstants.CAMERA_SMOOTH : 0.1;
+        this.zoomSmoothing = typeof GameConstants !== 'undefined' ? GameConstants.ZOOM_SMOOTH : 0.05;
         this.shakeAmount = 0;
         this.shakeDecay = 0.9;
         this.shakeOffset = new Vector2(0, 0);
@@ -53,11 +53,20 @@ class Camera {
 
         // Enhanced dynamic zoom based on player size and movement
         const playerMass = player.getTotalMass();
-        const baseZoom = Math.max(this.minZoom, Math.min(this.maxZoom, 100 / Math.sqrt(playerMass)));
         
-        // Slight zoom out when moving fast for better visibility
-        const speedZoomFactor = playerVelocity > 80 ? 0.9 : 1;
-        this.targetZoom = baseZoom * speedZoomFactor;
+        // More aggressive zoom out formula - zooms out much more as player grows
+        // Base mass of 100 = zoom 1, mass 400 = zoom 0.5, mass 1600 = zoom 0.25, etc.
+        const massScale = playerMass / 100; // Normalize to starting mass
+        const zoomReduction = Math.min(2.5, Math.sqrt(massScale)); // Cap the reduction
+        const baseZoom = Math.max(this.minZoom, Math.min(this.maxZoom, 1 / zoomReduction));
+        
+        // Additional zoom out when moving fast for better visibility
+        const speedZoomFactor = playerVelocity > 80 ? 0.85 : 1;
+        
+        // Further zoom out for very large players to show more of the battlefield
+        const massBonus = playerMass > 1000 ? Math.max(0.7, 1 - (playerMass - 1000) / 5000) : 1;
+        
+        this.targetZoom = baseZoom * speedZoomFactor * massBonus;
     }
 
     worldToScreen(worldPos) {
@@ -836,9 +845,9 @@ class AIPlayer extends Player {
         if (this.abilityTiming > 0.7 && window.abilityManager) {
             // Use stasis field when being chased
             if (threats.length > 0 && threats[0].distance < 120 && this.getTotalMass() > 150) {
-                const stasisField = window.abilityManager.abilities.find(a => a.name === 'Stasis Field');
+                const stasisField = window.abilityManager.abilities.stasis;
                 if (stasisField && stasisField.canUse(this)) {
-                    window.abilityManager.useAbility('Stasis Field', this, threats[0].player.getCenterPosition());
+                    window.abilityManager.useAbility('stasis', this, threats[0].player.getCenterPosition());
                     this.lastAbilityUse = now;
                     return;
                 }
@@ -846,9 +855,9 @@ class AIPlayer extends Player {
             
             // Use echo when hunting
             if (prey.length > 0 && prey[0].distance < 100 && this.aggressiveness > 0.8) {
-                const echo = window.abilityManager.abilities.find(a => a.name === 'Echo');
+                const echo = window.abilityManager.abilities.echo;
                 if (echo && echo.canUse(this)) {
-                    window.abilityManager.useAbility('Echo', this, this.getCenterPosition());
+                    window.abilityManager.useAbility('echo', this, this.getCenterPosition());
                     this.lastAbilityUse = now;
                     return;
                 }
@@ -1407,6 +1416,141 @@ class GameEngine {
         this.initializeZones();
     }
 
+    initializeWorld() {
+        // Set world boundaries
+        this.worldBounds = {
+            left: 0,
+            top: 0,
+            right: typeof GameConstants !== 'undefined' ? GameConstants.ARENA_WIDTH : 6000,
+            bottom: typeof GameConstants !== 'undefined' ? GameConstants.ARENA_HEIGHT : 6000
+        };
+
+        // Initialize chrono matter with increased density
+        this.spawnInitialChronoMatter();
+        
+        // Initialize AI players with increased count
+        this.spawnAIPlayers();
+        
+        // Initialize other world elements
+        this.initializeWorldElements();
+    }
+
+    spawnInitialChronoMatter() {
+        const matterCount = typeof GameConstants !== 'undefined' ? GameConstants.MAX_MATTER_COUNT : 800;
+        const arenaWidth = this.worldBounds.right;
+        const arenaHeight = this.worldBounds.bottom;
+        
+        for (let i = 0; i < matterCount; i++) {
+            this.spawnChronoMatter(
+                Math.random() * arenaWidth,
+                Math.random() * arenaHeight
+            );
+        }
+    }
+
+    spawnAIPlayers() {
+        const aiCount = typeof GameConstants !== 'undefined' ? GameConstants.MAX_AI_PLAYERS : 25;
+        const arenaWidth = this.worldBounds.right;
+        const arenaHeight = this.worldBounds.bottom;
+        
+        for (let i = 0; i < aiCount; i++) {
+            const aiColor = GameUtils.getPlayerColor(i + 1);
+            const aiName = GameUtils.generateAIName();
+            const aiPlayer = new Player(aiName, aiColor, true);
+            
+            // Position AI players randomly across the larger map
+            const startX = Math.random() * arenaWidth;
+            const startY = Math.random() * arenaHeight;
+            aiPlayer.cells[0].position = new Vector2(startX, startY);
+            
+            this.aiPlayers.push(aiPlayer);
+        }
+    }
+
+    spawnChronoMatter(x, y) {
+        if (!this.chronoMatter) {
+            this.chronoMatter = [];
+        }
+        
+        const matter = {
+            position: new Vector2(x, y),
+            radius: Math.random() * 3 + 2,
+            mass: Math.random() * 8 + 2,
+            color: `hsl(${180 + Math.random() * 60}, 80%, 60%)`,
+            pulsing: Math.random() > 0.5,
+            pulsePhase: Math.random() * Math.PI * 2
+        };
+        
+        this.chronoMatter.push(matter);
+    }
+
+    initializeWorldElements() {
+        // Initialize temporal rifts
+        this.temporalRifts = [];
+        
+        // Initialize ejected mass array
+        this.ejectedMass = [];
+        
+        // Add some initial temporal rifts scattered across the larger map
+        for (let i = 0; i < 5; i++) {
+            this.temporalRifts.push({
+                position: new Vector2(
+                    Math.random() * this.worldBounds.right,
+                    Math.random() * this.worldBounds.bottom
+                ),
+                radius: 20 + Math.random() * 10,
+                strength: 0.5 + Math.random() * 0.5,
+                color: '#ff00ff'
+            });
+        }
+    }
+
+    keepPlayerInBounds(player) {
+        if (!player || !player.cells || !this.worldBounds) return;
+        
+        player.cells.forEach(cell => {
+            // Keep cells within world boundaries
+            if (cell.position.x < this.worldBounds.left + cell.radius) {
+                cell.position.x = this.worldBounds.left + cell.radius;
+            }
+            if (cell.position.x > this.worldBounds.right - cell.radius) {
+                cell.position.x = this.worldBounds.right - cell.radius;
+            }
+            if (cell.position.y < this.worldBounds.top + cell.radius) {
+                cell.position.y = this.worldBounds.top + cell.radius;
+            }
+            if (cell.position.y > this.worldBounds.bottom - cell.radius) {
+                cell.position.y = this.worldBounds.bottom - cell.radius;
+            }
+        });
+    }
+
+    maintainMatterDensity() {
+        if (!this.chronoMatter) this.chronoMatter = [];
+        
+        const maxMatter = typeof GameConstants !== 'undefined' ? GameConstants.MAX_MATTER_COUNT : 800;
+        const spawnRate = typeof GameConstants !== 'undefined' ? GameConstants.MATTER_SPAWN_RATE : 2.0;
+        
+        // Spawn new matter randomly to maintain density
+        if (this.chronoMatter.length < maxMatter && Math.random() < spawnRate / 1000) {
+            this.spawnChronoMatter(
+                Math.random() * this.worldBounds.right,
+                Math.random() * this.worldBounds.bottom
+            );
+        }
+        
+        // Update existing matter (pulsing animation)
+        this.chronoMatter.forEach(matter => {
+            if (matter.pulsing) {
+                matter.pulsePhase += 0.05;
+                const pulse = Math.sin(matter.pulsePhase) * 0.3 + 1;
+                matter.currentRadius = matter.radius * pulse;
+            } else {
+                matter.currentRadius = matter.radius;
+            }
+        });
+    }
+
     setupCanvas() {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
@@ -1692,6 +1836,195 @@ class GameEngine {
         requestAnimationFrame(() => this.gameLoop());
     }
 
+    render() {
+        // Clear main canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Render game world
+        this.renderWorld();
+        
+        // Update UI including minimap
+        this.updateUI();
+    }
+
+    renderWorld() {
+        // Set camera transform
+        this.ctx.save();
+        this.ctx.scale(this.camera.zoom, this.camera.zoom);
+        this.ctx.translate(
+            -this.camera.position.x + this.canvas.width / (2 * this.camera.zoom),
+            -this.camera.position.y + this.canvas.height / (2 * this.camera.zoom)
+        );
+
+        // Render background
+        this.renderBackground();
+
+        // Render game entities
+        this.renderEntities();
+
+        this.ctx.restore();
+    }
+
+    renderBackground() {
+        // Simple grid background
+        const gridSize = 50;
+        this.ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+        this.ctx.lineWidth = 1;
+        
+        const startX = Math.floor(-this.canvas.width / this.camera.zoom / 2 / gridSize) * gridSize;
+        const startY = Math.floor(-this.canvas.height / this.camera.zoom / 2 / gridSize) * gridSize;
+        const endX = startX + this.canvas.width / this.camera.zoom + gridSize;
+        const endY = startY + this.canvas.height / this.camera.zoom + gridSize;
+        
+        for (let x = startX; x <= endX; x += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, startY);
+            this.ctx.lineTo(x, endY);
+            this.ctx.stroke();
+        }
+        
+        for (let y = startY; y <= endY; y += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(startX, y);
+            this.ctx.lineTo(endX, y);
+            this.ctx.stroke();
+        }
+    }
+
+    renderEntities() {
+        // Render chrono matter
+        this.chronoMatter.forEach(matter => {
+            this.ctx.fillStyle = matter.color || '#00ffff';
+            this.ctx.beginPath();
+            const radius = matter.currentRadius || matter.radius;
+            this.ctx.arc(matter.position.x, matter.position.y, radius, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Add glowing effect
+            this.ctx.shadowColor = matter.color || '#00ffff';
+            this.ctx.shadowBlur = 5;
+            this.ctx.fill();
+            this.ctx.shadowBlur = 0;
+        });
+
+        // Render ejected mass
+        this.ejectedMass.forEach(mass => {
+            this.ctx.fillStyle = mass.color || '#ffffff';
+            this.ctx.beginPath();
+            this.ctx.arc(mass.position.x, mass.position.y, mass.radius, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
+
+        // Render all players
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            player.cells.forEach(cell => {
+                this.ctx.fillStyle = cell.color;
+                this.ctx.beginPath();
+                this.ctx.arc(cell.position.x, cell.position.y, cell.radius, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Add border
+                this.ctx.strokeStyle = player === this.player ? '#ffffff' : '#000000';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+            });
+            
+            // Render player name
+            if (player.cells.length > 0) {
+                const center = player.getCenterPosition();
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = '16px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(player.name, center.x, center.y - player.cells[0].radius - 10);
+            }
+        });
+    }
+
+    updateUI() {
+        // Update minimap
+        this.renderMinimap();
+        
+        // Update other UI elements through the UI system
+        if (window.uiSystem) {
+            window.uiSystem.updateGameUI(this);
+        }
+    }
+
+    renderMinimap() {
+        const minimap = document.getElementById('minimap');
+        if (!minimap) return;
+        
+        const minimapCtx = minimap.getContext('2d');
+        if (!minimapCtx) return;
+        
+        // Set minimap size
+        const minimapSize = 150;
+        minimap.width = minimapSize;
+        minimap.height = minimapSize;
+        
+        // Clear minimap
+        minimapCtx.fillStyle = 'rgba(0, 20, 40, 0.9)';
+        minimapCtx.fillRect(0, 0, minimapSize, minimapSize);
+        
+        // Calculate world bounds using GameConstants
+        const arenaWidth = typeof GameConstants !== 'undefined' ? GameConstants.ARENA_WIDTH : 6000;
+        const arenaHeight = typeof GameConstants !== 'undefined' ? GameConstants.ARENA_HEIGHT : 6000;
+        const scale = minimapSize / Math.max(arenaWidth, arenaHeight);
+        
+        // Draw arena border
+        minimapCtx.strokeStyle = '#00ffff';
+        minimapCtx.lineWidth = 2;
+        minimapCtx.strokeRect(0, 0, minimapSize, minimapSize);
+        
+        // Draw all players
+        const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+        allPlayers.forEach(player => {
+            if (player.cells.length > 0) {
+                const center = player.getCenterPosition();
+                const x = (center.x / arenaWidth) * minimapSize;
+                const y = (center.y / arenaHeight) * minimapSize;
+                const radius = Math.max(2, Math.min(8, Math.sqrt(player.getTotalMass()) / 10));
+                
+                minimapCtx.fillStyle = player === this.player ? '#ffffff' : player.color;
+                minimapCtx.beginPath();
+                minimapCtx.arc(x, y, radius, 0, Math.PI * 2);
+                minimapCtx.fill();
+                
+                // Add border for current player
+                if (player === this.player) {
+                    minimapCtx.strokeStyle = '#00ffff';
+                    minimapCtx.lineWidth = 1;
+                    minimapCtx.stroke();
+                }
+            }
+        });
+        
+        // Draw chrono matter as small dots
+        this.chronoMatter.forEach(matter => {
+            const x = (matter.position.x / arenaWidth) * minimapSize;
+            const y = (matter.position.y / arenaHeight) * minimapSize;
+            
+            minimapCtx.fillStyle = 'rgba(0, 255, 255, 0.6)';
+            minimapCtx.beginPath();
+            minimapCtx.arc(x, y, 1, 0, Math.PI * 2);
+            minimapCtx.fill();
+        });
+        
+        // Draw view area indicator
+        if (this.player && this.player.cells.length > 0) {
+            const center = this.player.getCenterPosition();
+            const viewWidth = (this.canvas.width / this.camera.zoom) / arenaWidth * minimapSize;
+            const viewHeight = (this.canvas.height / this.camera.zoom) / arenaHeight * minimapSize;
+            const x = (center.x / arenaWidth) * minimapSize - viewWidth / 2;
+            const y = (center.y / arenaHeight) * minimapSize - viewHeight / 2;
+            
+            minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            minimapCtx.lineWidth = 1;
+            minimapCtx.strokeRect(x, y, viewWidth, viewHeight);
+        }
+    }
+
     updateFPS(currentTime, deltaTime) {
         this.frameCount++;
         
@@ -1728,10 +2061,19 @@ class GameEngine {
         
         this.aiPlayers.forEach(ai => {
             ai.update(deltaTime, gameEntities);
+            this.keepPlayerInBounds(ai);
         });
+        
+        // Keep player in bounds
+        if (this.player) {
+            this.keepPlayerInBounds(this.player);
+        }
         
         // Update camera
         this.camera.update(deltaTime);
+        
+        // Maintain matter density by spawning new matter
+        this.maintainMatterDensity();
         
         // Update chunk loading based on player position
         if (this.chunkManager) {

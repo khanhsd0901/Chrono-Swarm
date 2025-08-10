@@ -508,6 +508,19 @@ class AbilityManager {
         return this.getCurrentAbility().use(player, targetPosition);
     }
 
+    useAbility(abilityName, player, targetPosition) {
+        const ability = this.abilities[abilityName.toLowerCase()];
+        if (ability && ability.canUse(player)) {
+            return ability.use(player, targetPosition);
+        }
+        return false;
+    }
+
+    find(predicate) {
+        // For backward compatibility with existing code that uses .find()
+        return Object.values(this.abilities).find(predicate);
+    }
+
     update(deltaTime) {
         Object.values(this.abilities).forEach(ability => {
             ability.update(deltaTime);
