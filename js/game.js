@@ -1492,12 +1492,85 @@ class GameEngine {
         this.temporalRifts = [];
         this.chronoMatter = [];
         
+        // Initialize new exploration entities
+        this.ancientArtifacts = [];
+        this.wormholes = [];
+        this.energyStorms = [];
+        this.mysteryZones = [];
+        
+        // Initialize exploration entity timers
+        this.lastArtifactSpawn = 0;
+        this.lastStormSpawn = 0;
+        this.lastMysteryZoneSpawn = 0;
+        
         // Load initial chunks around player spawn point
         const playerPos = this.player.getCenterPosition();
         this.chunkManager.update(playerPos, Date.now());
         
+        // Generate initial exploration entities
+        this.generateInitialExplorationEntities();
+        
         // Create AI players (they can spawn anywhere, chunks will load as needed)
         this.generateAIPlayers();
+    }
+
+    generateInitialExplorationEntities() {
+        // Generate Ancient Artifacts (rare, 3-5 per world)
+        const artifactCount = MathUtils.randomInt(3, 5);
+        for (let i = 0; i < artifactCount; i++) {
+            const position = this.getRandomValidPosition(100);
+            if (position) {
+                const artifact = new AncientArtifact(position.x, position.y);
+                this.ancientArtifacts.push(artifact);
+            }
+        }
+        
+        // Generate Wormhole pairs (2-3 pairs)
+        const wormholePairs = MathUtils.randomInt(2, 3);
+        for (let i = 0; i < wormholePairs; i++) {
+            const entrance = this.getRandomValidPosition(150);
+            const exit = this.getRandomValidPosition(150, entrance, 2000); // At least 2000 units apart
+            
+            if (entrance && exit) {
+                const wormhole1 = new Wormhole(entrance.x, entrance.y, exit.x, exit.y);
+                const wormhole2 = new Wormhole(exit.x, exit.y, entrance.x, entrance.y);
+                this.wormholes.push(wormhole1, wormhole2);
+            }
+        }
+    }
+    
+    getRandomValidPosition(minDistance = 100, avoidPosition = null, minDistanceFromAvoid = 1000) {
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        while (attempts < maxAttempts) {
+            const position = new Vector2(
+                MathUtils.random(GameConstants.ARENA_PADDING * 2, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING * 2),
+                MathUtils.random(GameConstants.ARENA_PADDING * 2, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING * 2)
+            );
+            
+            // Check distance from rifts
+            if (this.isPositionTooCloseToRifts(position, minDistance)) {
+                attempts++;
+                continue;
+            }
+            
+            // Check distance from avoid position
+            if (avoidPosition && Vector2.distance(position, avoidPosition) < minDistanceFromAvoid) {
+                attempts++;
+                continue;
+            }
+            
+            // Check if position is in loaded chunk
+            if (!this.chunkManager.isPositionLoaded(position.x, position.y)) {
+                attempts++;
+                continue;
+            }
+            
+            return position;
+        }
+        
+        return null;
     }
 
     generateTemporalRifts() {
@@ -1695,6 +1768,200 @@ class GameEngine {
             mass.update(deltaTime);
             return mass.isAlive;
         });
+        
+        // Update exploration entities
+        this.updateExplorationEntities(deltaTime);
+    }
+    
+    updateExplorationEntities(deltaTime) {
+        const now = Date.now();
+        
+        // Update Ancient Artifacts
+        this.ancientArtifacts.forEach(artifact => {
+            artifact.update(deltaTime);
+            
+            // Check for player discovery
+            if (artifact.checkPlayerNearby(this.player)) {
+                artifact.auraIntensity = 1;
+                
+                // Handle discovery input (E key)
+                if (this.keys['KeyE'] && !this.discoveryKeyPressed) {
+                    this.discoveryKeyPressed = true;
+                    if (artifact.discover(this.player)) {
+                        this.applyArtifactEffects(this.player, artifact);
+                        this.showDiscoveryNotification(artifact);
+                    }
+                }
+            } else {
+                artifact.auraIntensity = 0;
+            }
+        });
+        
+        // Reset discovery key
+        if (!this.keys['KeyE']) {
+            this.discoveryKeyPressed = false;
+        }
+        
+        // Update Wormholes
+        this.wormholes.forEach(wormhole => {
+            wormhole.update(deltaTime);
+            
+            // Check for player teleportation
+            if (wormhole.canTeleport(this.player)) {
+                if (wormhole.teleport(this.player)) {
+                    this.camera.position = this.player.getCenterPosition();
+                }
+            }
+        });
+        
+        // Update Energy Storms
+        this.energyStorms = this.energyStorms.filter(storm => {
+            storm.update(deltaTime);
+            
+            // Apply storm effects to players
+            const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+            allPlayers.forEach(player => {
+                if (storm.affectsPlayer(player)) {
+                    this.applyStormEffects(player, storm);
+                }
+            });
+            
+            return storm.isActive;
+        });
+        
+        // Update Mystery Zones
+        this.mysteryZones = this.mysteryZones.filter(zone => {
+            zone.update(deltaTime);
+            
+            // Apply zone effects to players
+            const allPlayers = [this.player, ...this.aiPlayers].filter(p => p && p.isAlive);
+            allPlayers.forEach(player => {
+                if (zone.affectsPlayer(player)) {
+                    this.applyMysteryZoneEffects(player, zone);
+                }
+            });
+            
+            return zone.isActive;
+        });
+        
+        // Spawn new exploration entities periodically
+        this.spawnExplorationEntities(now);
+    }
+    
+    spawnExplorationEntities(now) {
+        // Spawn Energy Storms (every 2-4 minutes)
+        if (now - this.lastStormSpawn > MathUtils.random(120000, 240000)) {
+            const position = this.getRandomValidPosition(200);
+            if (position) {
+                const stormType = MathUtils.randomChoice(['LIGHTNING', 'PLASMA', 'VOID', 'CRYSTAL']);
+                const storm = new EnergyStorm(position.x, position.y, stormType);
+                this.energyStorms.push(storm);
+                this.lastStormSpawn = now;
+                
+                // Announce storm
+                if (window.uiSystem) {
+                    window.uiSystem.showNotification({
+                        title: `⚡ ${storm.properties.name} Detected! ⚡`,
+                        message: 'A powerful energy storm has formed!',
+                        duration: 5000,
+                        type: 'storm'
+                    });
+                }
+            }
+        }
+        
+        // Spawn Mystery Zones (every 1-3 minutes)
+        if (now - this.lastMysteryZoneSpawn > MathUtils.random(60000, 180000)) {
+            const position = this.getRandomValidPosition(150);
+            if (position) {
+                const zone = new MysteryZone(position.x, position.y);
+                this.mysteryZones.push(zone);
+                this.lastMysteryZoneSpawn = now;
+                
+                // Announce mystery zone
+                if (window.uiSystem) {
+                    window.uiSystem.showNotification({
+                        title: `🌟 ${zone.properties.name} Manifested! 🌟`,
+                        message: zone.properties.description,
+                        duration: 4000,
+                        type: 'mystery'
+                    });
+                }
+            }
+        }
+    }
+    
+    applyArtifactEffects(player, artifact) {
+        const effects = artifact.properties.effect;
+        
+        if (effects.abilityRecharge) {
+            player.abilityRechargeMultiplier = (player.abilityRechargeMultiplier || 1) * effects.abilityRecharge;
+        }
+        if (effects.voidImmunity) {
+            player.voidImmune = true;
+        }
+        if (effects.speedBonus) {
+            player.speedMultiplier = (player.speedMultiplier || 1) * effects.speedBonus;
+        }
+        if (effects.maxCellsBonus) {
+            player.maxCells = (player.maxCells || GameConstants.MAX_CELLS) + effects.maxCellsBonus;
+        }
+        if (effects.massGainBonus) {
+            player.massGainMultiplier = (player.massGainMultiplier || 1) * effects.massGainBonus;
+        }
+        if (effects.experienceRegen) {
+            player.experienceRegenRate = (player.experienceRegenRate || 0) + effects.experienceRegen;
+        }
+    }
+    
+    applyStormEffects(player, storm) {
+        const effects = storm.properties.effects;
+        
+        // Temporary effects that are applied each frame
+        if (effects.speedBonus && !player.stormSpeedBonus) {
+            player.stormSpeedBonus = effects.speedBonus;
+        }
+        if (effects.speedPenalty && !player.stormSpeedPenalty) {
+            player.stormSpeedPenalty = effects.speedPenalty;
+        }
+        if (effects.damageBonus && !player.stormDamageBonus) {
+            player.stormDamageBonus = effects.damageBonus;
+        }
+    }
+    
+    applyMysteryZoneEffects(player, zone) {
+        const effects = zone.properties.effects;
+        
+        // Apply temporary zone effects
+        if (effects.experienceMultiplier && !player.zoneExperienceBonus) {
+            player.zoneExperienceBonus = effects.experienceMultiplier;
+        }
+        if (effects.massMultiplier && !player.zoneMassBonus) {
+            player.zoneMassBonus = effects.massMultiplier;
+        }
+        if (effects.speedMultiplier && !player.zoneSpeedBonus) {
+            player.zoneSpeedBonus = effects.speedMultiplier;
+        }
+        if (effects.invulnerable) {
+            player.temporaryInvulnerable = true;
+        }
+        if (effects.shardRain && this.playerProgression) {
+            // Award shards periodically
+            if (Math.random() < 0.02) { // 2% chance per frame
+                this.playerProgression.addChronoShards(effects.shardRain);
+            }
+        }
+    }
+    
+    showDiscoveryNotification(artifact) {
+        if (window.uiSystem) {
+            window.uiSystem.showNotification({
+                title: `🔮 ${artifact.properties.name} Discovered! 🔮`,
+                message: artifact.properties.description,
+                duration: 6000,
+                type: 'discovery'
+            });
+        }
     }
 
     handleCollisions() {
@@ -2027,6 +2294,39 @@ class GameEngine {
         this.temporalRifts.forEach(rift => {
             if (this.camera.isInView(rift.position, rift.radius * 1.5)) {
                 rift.render(this.ctx, this.camera);
+            }
+        });
+        
+        // Render exploration entities
+        this.renderExplorationEntities();
+    }
+    
+    renderExplorationEntities() {
+        // Render Energy Storms (behind other entities)
+        this.energyStorms.forEach(storm => {
+            if (this.camera.isInView(storm.position, storm.radius * 2)) {
+                storm.render(this.ctx, this.camera);
+            }
+        });
+        
+        // Render Mystery Zones (behind other entities)
+        this.mysteryZones.forEach(zone => {
+            if (this.camera.isInView(zone.position, zone.radius * 2)) {
+                zone.render(this.ctx, this.camera);
+            }
+        });
+        
+        // Render Wormholes
+        this.wormholes.forEach(wormhole => {
+            if (this.camera.isInView(wormhole.position, wormhole.radius * 2)) {
+                wormhole.render(this.ctx, this.camera);
+            }
+        });
+        
+        // Render Ancient Artifacts (on top for visibility)
+        this.ancientArtifacts.forEach(artifact => {
+            if (!artifact.discovered && this.camera.isInView(artifact.position, artifact.radius * 3)) {
+                artifact.render(this.ctx, this.camera);
             }
         });
     }

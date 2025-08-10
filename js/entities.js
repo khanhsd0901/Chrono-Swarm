@@ -687,10 +687,804 @@ class RiftProjectile extends Entity {
     }
 }
 
+// Ancient Artifacts - Rare discoverable items that provide permanent bonuses
+class AncientArtifact {
+    constructor(x, y, artifactType = null) {
+        this.position = new Vector2(x, y);
+        this.type = artifactType || MathUtils.randomChoice([
+            'TEMPORAL_CRYSTAL', 'VOID_ESSENCE', 'STELLAR_CORE', 
+            'QUANTUM_MATRIX', 'PRIMORDIAL_SHARD', 'COSMIC_RUNE'
+        ]);
+        this.radius = 25;
+        this.discovered = false;
+        this.pulsePhase = Math.random() * Math.PI * 2;
+        this.rotationSpeed = 0.02;
+        this.rotation = 0;
+        this.auraIntensity = 0;
+        this.discoveryRange = 60;
+        
+        // Artifact properties based on type
+        this.properties = this.getArtifactProperties();
+        
+        // Visual effects
+        this.particles = [];
+        this.lastParticleSpawn = 0;
+        this.glowPulse = 0;
+    }
+    
+    getArtifactProperties() {
+        const artifactData = {
+            TEMPORAL_CRYSTAL: {
+                name: 'Temporal Crystal',
+                description: 'Increases ability cooldown recovery by 20%',
+                color: '#88ffff',
+                effect: { abilityRecharge: 1.2 },
+                rarity: 'legendary'
+            },
+            VOID_ESSENCE: {
+                name: 'Void Essence',
+                description: 'Grants immunity to void damage',
+                color: '#440088',
+                effect: { voidImmunity: true },
+                rarity: 'epic'
+            },
+            STELLAR_CORE: {
+                name: 'Stellar Core',
+                description: 'Increases movement speed by 15%',
+                color: '#ffaa00',
+                effect: { speedBonus: 1.15 },
+                rarity: 'rare'
+            },
+            QUANTUM_MATRIX: {
+                name: 'Quantum Matrix',
+                description: 'Allows splitting into more cells (+2 max)',
+                color: '#ff00ff',
+                effect: { maxCellsBonus: 2 },
+                rarity: 'legendary'
+            },
+            PRIMORDIAL_SHARD: {
+                name: 'Primordial Shard',
+                description: 'Increases mass gain from matter by 50%',
+                color: '#00ff88',
+                effect: { massGainBonus: 1.5 },
+                rarity: 'epic'
+            },
+            COSMIC_RUNE: {
+                name: 'Cosmic Rune',
+                description: 'Grants passive experience generation',
+                color: '#ffff00',
+                effect: { experienceRegen: 5 }, // per second
+                rarity: 'mythic'
+            }
+        };
+        
+        return artifactData[this.type];
+    }
+    
+    update(deltaTime) {
+        this.rotation += this.rotationSpeed * deltaTime / 16.67;
+        this.pulsePhase += 0.05;
+        this.glowPulse = Math.sin(this.pulsePhase) * 0.5 + 0.5;
+        
+        // Spawn particles
+        const now = Date.now();
+        if (now - this.lastParticleSpawn > 200) {
+            this.spawnAuraParticle();
+            this.lastParticleSpawn = now;
+        }
+        
+        // Update particles
+        this.particles = this.particles.filter(particle => {
+            particle.life -= deltaTime;
+            particle.position.x += particle.velocity.x * deltaTime / 1000;
+            particle.position.y += particle.velocity.y * deltaTime / 1000;
+            particle.alpha = particle.life / particle.maxLife;
+            return particle.life > 0;
+        });
+    }
+    
+    spawnAuraParticle() {
+        if (window.particleSystem) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = this.radius + Math.random() * 20;
+            const particlePos = Vector2.add(this.position, Vector2.fromAngle(angle, distance));
+            
+            window.particleSystem.createParticle(particlePos.x, particlePos.y, {
+                type: 'star',
+                life: 2000,
+                maxLife: 2000,
+                startSize: 2,
+                endSize: 0,
+                startColor: Color.fromHex(this.properties.color),
+                endColor: new Color(255, 255, 255, 0),
+                velocity: Vector2.fromAngle(angle + Math.PI, 20),
+                blendMode: 'additive'
+            });
+        }
+    }
+    
+    checkPlayerNearby(player) {
+        if (!player || this.discovered) return false;
+        
+        const playerCenter = player.getCenterPosition();
+        const distance = Vector2.distance(this.position, playerCenter);
+        
+        return distance <= this.discoveryRange;
+    }
+    
+    discover(player) {
+        if (this.discovered) return false;
+        
+        this.discovered = true;
+        
+        // Apply artifact effects to player
+        if (player.artifacts) {
+            player.artifacts.push(this.type);
+        } else {
+            player.artifacts = [this.type];
+        }
+        
+        // Create discovery particle explosion
+        if (window.particleSystem) {
+            window.particleSystem.createExplosion(this.position, 'artifact', 30, {
+                startColor: Color.fromHex(this.properties.color),
+                endColor: new Color(255, 255, 255, 0),
+                life: 3000
+            });
+        }
+        
+        // Play discovery sound
+        if (window.audioSystem) {
+            window.audioSystem.playSound('artifact_discovery');
+        }
+        
+        return true;
+    }
+    
+    render(ctx, camera) {
+        if (!camera.isInView(this.position, this.radius * 3)) return;
+        
+        const screenPos = camera.worldToScreen(this.position);
+        const scale = camera.zoom;
+        
+        ctx.save();
+        ctx.translate(screenPos.x, screenPos.y);
+        ctx.rotate(this.rotation);
+        
+        // Outer aura
+        const auraRadius = (this.radius + 10 + this.glowPulse * 5) * scale;
+        const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, auraRadius);
+        gradient.addColorStop(0, this.properties.color + '80');
+        gradient.addColorStop(1, this.properties.color + '00');
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(-auraRadius, -auraRadius, auraRadius * 2, auraRadius * 2);
+        
+        // Main artifact body
+        ctx.fillStyle = this.properties.color;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2 * scale;
+        
+        // Draw artifact shape based on type
+        const radius = this.radius * scale;
+        if (this.type === 'TEMPORAL_CRYSTAL') {
+            this.drawCrystalShape(ctx, radius);
+        } else if (this.type === 'STELLAR_CORE') {
+            this.drawStarShape(ctx, radius);
+        } else if (this.type === 'QUANTUM_MATRIX') {
+            this.drawMatrixShape(ctx, radius);
+        } else {
+            // Default shape
+            ctx.beginPath();
+            ctx.arc(0, 0, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+        
+        ctx.restore();
+        
+        // Draw discovery prompt if player is nearby
+        if (!this.discovered && this.auraIntensity > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `${12 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText('Press E to investigate', screenPos.x, screenPos.y - (this.radius + 30) * scale);
+        }
+    }
+    
+    drawCrystalShape(ctx, radius) {
+        ctx.beginPath();
+        const points = 6;
+        for (let i = 0; i < points; i++) {
+            const angle = (i / points) * Math.PI * 2;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+    
+    drawStarShape(ctx, radius) {
+        ctx.beginPath();
+        const points = 8;
+        for (let i = 0; i < points * 2; i++) {
+            const angle = (i / (points * 2)) * Math.PI * 2;
+            const r = i % 2 === 0 ? radius : radius * 0.5;
+            const x = Math.cos(angle) * r;
+            const y = Math.sin(angle) * r;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
+    
+    drawMatrixShape(ctx, radius) {
+        ctx.beginPath();
+        ctx.rect(-radius, -radius, radius * 2, radius * 2);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Inner pattern
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-radius * 0.5, -radius * 0.5);
+        ctx.lineTo(radius * 0.5, radius * 0.5);
+        ctx.moveTo(radius * 0.5, -radius * 0.5);
+        ctx.lineTo(-radius * 0.5, radius * 0.5);
+        ctx.stroke();
+    }
+}
+
+// Wormholes - Teleportation portals between distant locations
+class Wormhole {
+    constructor(x, y, exitX, exitY) {
+        this.position = new Vector2(x, y);
+        this.exitPosition = new Vector2(exitX, exitY);
+        this.radius = 40;
+        this.innerRadius = 20;
+        this.rotationSpeed = 0.03;
+        this.rotation = 0;
+        this.pulsePhase = 0;
+        this.cooldown = 0;
+        this.maxCooldown = 3000; // 3 seconds between uses
+        this.isActive = true;
+        
+        // Visual effects
+        this.particles = [];
+        this.lastParticleSpawn = 0;
+    }
+    
+    update(deltaTime) {
+        this.rotation += this.rotationSpeed * deltaTime / 16.67;
+        this.pulsePhase += 0.08;
+        
+        if (this.cooldown > 0) {
+            this.cooldown -= deltaTime;
+            this.isActive = this.cooldown <= 0;
+        }
+        
+        // Spawn particles
+        const now = Date.now();
+        if (now - this.lastParticleSpawn > 100) {
+            this.spawnWormholeParticle();
+            this.lastParticleSpawn = now;
+        }
+    }
+    
+    spawnWormholeParticle() {
+        if (window.particleSystem) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * this.radius;
+            const particlePos = Vector2.add(this.position, Vector2.fromAngle(angle, distance));
+            
+            window.particleSystem.createParticle(particlePos.x, particlePos.y, {
+                type: 'circle',
+                life: 1500,
+                maxLife: 1500,
+                startSize: 3,
+                endSize: 0,
+                startColor: new Color(0, 255, 255, 0.8),
+                endColor: new Color(255, 255, 255, 0),
+                velocity: Vector2.fromAngle(angle, -30),
+                blendMode: 'additive'
+            });
+        }
+    }
+    
+    canTeleport(player) {
+        if (!this.isActive || !player) return false;
+        
+        const playerCenter = player.getCenterPosition();
+        const distance = Vector2.distance(this.position, playerCenter);
+        
+        return distance <= this.innerRadius;
+    }
+    
+    teleport(player) {
+        if (!this.canTeleport(player)) return false;
+        
+        // Calculate offset from wormhole center
+        const playerCenter = player.getCenterPosition();
+        const offset = Vector2.subtract(playerCenter, this.position);
+        
+        // Move all player cells to exit position + offset
+        const newPosition = Vector2.add(this.exitPosition, offset);
+        player.cells.forEach(cell => {
+            const cellOffset = Vector2.subtract(cell.position, playerCenter);
+            cell.position = Vector2.add(newPosition, cellOffset);
+        });
+        
+        // Create teleport effects
+        if (window.particleSystem) {
+            // Entry effect
+            window.particleSystem.createExplosion(this.position, 'teleport', 20, {
+                startColor: new Color(0, 255, 255, 1),
+                endColor: new Color(255, 255, 255, 0)
+            });
+            
+            // Exit effect
+            window.particleSystem.createExplosion(this.exitPosition, 'teleport', 20, {
+                startColor: new Color(255, 0, 255, 1),
+                endColor: new Color(255, 255, 255, 0)
+            });
+        }
+        
+        // Play teleport sound
+        if (window.audioSystem) {
+            window.audioSystem.playSound('wormhole_teleport');
+        }
+        
+        // Set cooldown
+        this.cooldown = this.maxCooldown;
+        this.isActive = false;
+        
+        return true;
+    }
+    
+    render(ctx, camera) {
+        if (!camera.isInView(this.position, this.radius * 2)) return;
+        
+        const screenPos = camera.worldToScreen(this.position);
+        const scale = camera.zoom;
+        const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
+        
+        ctx.save();
+        ctx.translate(screenPos.x, screenPos.y);
+        ctx.rotate(this.rotation);
+        
+        // Outer ring
+        const outerRadius = this.radius * scale * pulse;
+        const gradient1 = ctx.createRadialGradient(0, 0, 0, 0, 0, outerRadius);
+        gradient1.addColorStop(0, 'rgba(0, 255, 255, 0)');
+        gradient1.addColorStop(0.7, 'rgba(0, 255, 255, 0.3)');
+        gradient1.addColorStop(1, 'rgba(0, 255, 255, 0.8)');
+        
+        ctx.fillStyle = gradient1;
+        ctx.beginPath();
+        ctx.arc(0, 0, outerRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Inner vortex
+        const innerRadius = this.innerRadius * scale;
+        const gradient2 = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
+        gradient2.addColorStop(0, 'rgba(0, 0, 0, 1)');
+        gradient2.addColorStop(0.5, 'rgba(0, 100, 255, 0.8)');
+        gradient2.addColorStop(1, 'rgba(0, 255, 255, 0.4)');
+        
+        ctx.fillStyle = gradient2;
+        ctx.beginPath();
+        ctx.arc(0, 0, innerRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Spiral effect
+        ctx.strokeStyle = this.isActive ? '#00ffff' : '#666666';
+        ctx.lineWidth = 2 * scale;
+        ctx.beginPath();
+        const spiralTurns = 3;
+        for (let i = 0; i <= 100; i++) {
+            const progress = i / 100;
+            const angle = progress * spiralTurns * Math.PI * 2;
+            const radius = innerRadius * (1 - progress);
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        // Cooldown indicator
+        if (this.cooldown > 0) {
+            const cooldownProgress = 1 - (this.cooldown / this.maxCooldown);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3 * scale;
+            ctx.beginPath();
+            ctx.arc(screenPos.x, screenPos.y, (this.radius + 10) * scale, 
+                   -Math.PI / 2, -Math.PI / 2 + cooldownProgress * Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+}
+
+// Energy Storms - Dynamic weather events that affect gameplay
+class EnergyStorm {
+    constructor(x, y, stormType = 'LIGHTNING') {
+        this.position = new Vector2(x, y);
+        this.type = stormType;
+        this.radius = 150;
+        this.maxRadius = 300;
+        this.intensity = 0;
+        this.maxIntensity = 1;
+        this.growthRate = 0.001;
+        this.duration = 45000; // 45 seconds
+        this.age = 0;
+        this.isActive = true;
+        
+        // Storm properties
+        this.properties = this.getStormProperties();
+        
+        // Visual effects
+        this.lightningBolts = [];
+        this.lastLightning = 0;
+        this.pulsePhase = 0;
+        this.rotation = 0;
+    }
+    
+    getStormProperties() {
+        const stormData = {
+            LIGHTNING: {
+                name: 'Lightning Storm',
+                color: '#ffff00',
+                effects: { speedBonus: 1.2, energyDrain: true },
+                lightningFrequency: 500
+            },
+            PLASMA: {
+                name: 'Plasma Storm',
+                color: '#ff00ff',
+                effects: { damageBonus: 1.3, plasmaBurn: true },
+                lightningFrequency: 300
+            },
+            VOID: {
+                name: 'Void Storm',
+                color: '#800080',
+                effects: { voidDamage: true, speedPenalty: 0.7 },
+                lightningFrequency: 800
+            },
+            CRYSTAL: {
+                name: 'Crystal Storm',
+                color: '#00ff88',
+                effects: { massGainBonus: 1.5, crystallize: true },
+                lightningFrequency: 1000
+            }
+        };
+        
+        return stormData[this.type];
+    }
+    
+    update(deltaTime) {
+        this.age += deltaTime;
+        this.pulsePhase += 0.05;
+        this.rotation += 0.02;
+        
+        // Storm lifecycle
+        const lifeProgress = this.age / this.duration;
+        if (lifeProgress < 0.3) {
+            // Growing phase
+            this.intensity = MathUtils.lerp(0, this.maxIntensity, lifeProgress / 0.3);
+            this.radius = MathUtils.lerp(50, this.maxRadius, lifeProgress / 0.3);
+        } else if (lifeProgress < 0.7) {
+            // Stable phase
+            this.intensity = this.maxIntensity;
+            this.radius = this.maxRadius;
+        } else {
+            // Dissipating phase
+            const dissipateProgress = (lifeProgress - 0.7) / 0.3;
+            this.intensity = MathUtils.lerp(this.maxIntensity, 0, dissipateProgress);
+            this.radius = MathUtils.lerp(this.maxRadius, 50, dissipateProgress);
+        }
+        
+        if (this.age >= this.duration) {
+            this.isActive = false;
+        }
+        
+        // Generate lightning
+        const now = Date.now();
+        if (now - this.lastLightning > this.properties.lightningFrequency) {
+            this.createLightningBolt();
+            this.lastLightning = now;
+        }
+        
+        // Update lightning bolts
+        this.lightningBolts = this.lightningBolts.filter(bolt => {
+            bolt.life -= deltaTime;
+            return bolt.life > 0;
+        });
+    }
+    
+    createLightningBolt() {
+        if (window.particleSystem) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * this.radius;
+            const startPos = Vector2.add(this.position, Vector2.fromAngle(angle, distance));
+            
+            const bolt = {
+                start: startPos,
+                end: Vector2.add(startPos, Vector2.fromAngle(angle + Math.random() - 0.5, 100)),
+                life: 200,
+                maxLife: 200
+            };
+            
+            this.lightningBolts.push(bolt);
+            
+            // Create lightning particle effect
+            window.particleSystem.createParticle(startPos.x, startPos.y, {
+                type: 'star',
+                life: 300,
+                maxLife: 300,
+                startSize: 8,
+                endSize: 0,
+                startColor: Color.fromHex(this.properties.color),
+                endColor: new Color(255, 255, 255, 0),
+                blendMode: 'additive'
+            });
+        }
+    }
+    
+    affectsPlayer(player) {
+        if (!this.isActive || !player) return false;
+        
+        const playerCenter = player.getCenterPosition();
+        const distance = Vector2.distance(this.position, playerCenter);
+        
+        return distance <= this.radius;
+    }
+    
+    render(ctx, camera) {
+        if (!camera.isInView(this.position, this.radius * 2)) return;
+        
+        const screenPos = camera.worldToScreen(this.position);
+        const scale = camera.zoom;
+        const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
+        
+        ctx.save();
+        ctx.globalAlpha = this.intensity * 0.8;
+        
+        // Storm area
+        const radius = this.radius * scale * pulse;
+        const gradient = ctx.createRadialGradient(
+            screenPos.x, screenPos.y, 0,
+            screenPos.x, screenPos.y, radius
+        );
+        gradient.addColorStop(0, this.properties.color + '40');
+        gradient.addColorStop(0.7, this.properties.color + '20');
+        gradient.addColorStop(1, this.properties.color + '00');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Lightning bolts
+        ctx.strokeStyle = this.properties.color;
+        ctx.lineWidth = 3 * scale;
+        ctx.shadowColor = this.properties.color;
+        ctx.shadowBlur = 10 * scale;
+        
+        this.lightningBolts.forEach(bolt => {
+            const alpha = bolt.life / bolt.maxLife;
+            ctx.globalAlpha = alpha * this.intensity;
+            
+            const startScreen = camera.worldToScreen(bolt.start);
+            const endScreen = camera.worldToScreen(bolt.end);
+            
+            ctx.beginPath();
+            ctx.moveTo(startScreen.x, startScreen.y);
+            ctx.lineTo(endScreen.x, endScreen.y);
+            ctx.stroke();
+        });
+        
+        ctx.restore();
+        
+        // Storm name
+        if (this.intensity > 0.5) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `${14 * scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText(this.properties.name, screenPos.x, screenPos.y - radius - 20);
+        }
+    }
+}
+
+// Mystery Zones - Temporary areas with special effects that appear randomly
+class MysteryZone {
+    constructor(x, y, zoneType = null) {
+        this.position = new Vector2(x, y);
+        this.type = zoneType || MathUtils.randomChoice([
+            'EXPERIENCE_BOOST', 'MASS_MULTIPLICATION', 'SPEED_ZONE', 
+            'INVULNERABILITY', 'SHARD_RAIN', 'TIME_DILATION'
+        ]);
+        this.radius = 120;
+        this.duration = 30000; // 30 seconds
+        this.age = 0;
+        this.isActive = true;
+        this.pulsePhase = 0;
+        
+        // Zone properties
+        this.properties = this.getZoneProperties();
+        
+        // Visual effects
+        this.orbs = [];
+        this.generateOrbs();
+    }
+    
+    getZoneProperties() {
+        const zoneData = {
+            EXPERIENCE_BOOST: {
+                name: 'Experience Nexus',
+                description: '+300% Experience Gain',
+                color: '#00ff00',
+                effects: { experienceMultiplier: 4 }
+            },
+            MASS_MULTIPLICATION: {
+                name: 'Growth Chamber',
+                description: '+200% Mass Gain',
+                color: '#ff8800',
+                effects: { massMultiplier: 3 }
+            },
+            SPEED_ZONE: {
+                name: 'Velocity Field',
+                description: '+100% Movement Speed',
+                color: '#0088ff',
+                effects: { speedMultiplier: 2 }
+            },
+            INVULNERABILITY: {
+                name: 'Shield Dome',
+                description: 'Temporary Invulnerability',
+                color: '#ffff00',
+                effects: { invulnerable: true }
+            },
+            SHARD_RAIN: {
+                name: 'Shard Storm',
+                description: 'Passive Shard Generation',
+                color: '#ff00ff',
+                effects: { shardRain: 2 } // shards per second
+            },
+            TIME_DILATION: {
+                name: 'Temporal Bubble',
+                description: 'Slowed Time Perception',
+                color: '#88ffff',
+                effects: { timeDilation: 0.5 }
+            }
+        };
+        
+        return zoneData[this.type];
+    }
+    
+    generateOrbs() {
+        const orbCount = 8;
+        for (let i = 0; i < orbCount; i++) {
+            const angle = (i / orbCount) * Math.PI * 2;
+            const distance = this.radius * 0.8;
+            this.orbs.push({
+                position: Vector2.fromAngle(angle, distance),
+                phase: i * (Math.PI * 2 / orbCount),
+                rotationSpeed: 0.02
+            });
+        }
+    }
+    
+    update(deltaTime) {
+        this.age += deltaTime;
+        this.pulsePhase += 0.08;
+        
+        if (this.age >= this.duration) {
+            this.isActive = false;
+        }
+        
+        // Update orbs
+        this.orbs.forEach(orb => {
+            orb.phase += orb.rotationSpeed;
+            const orbitalRadius = this.radius * 0.8 + Math.sin(orb.phase) * 20;
+            orb.position = Vector2.fromAngle(orb.phase, orbitalRadius);
+        });
+        
+        // Spawn effect particles
+        if (window.particleSystem && Math.random() < 0.1) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * this.radius;
+            const particlePos = Vector2.add(this.position, Vector2.fromAngle(angle, distance));
+            
+            window.particleSystem.createParticle(particlePos.x, particlePos.y, {
+                type: 'circle',
+                life: 2000,
+                maxLife: 2000,
+                startSize: 4,
+                endSize: 0,
+                startColor: Color.fromHex(this.properties.color),
+                endColor: new Color(255, 255, 255, 0),
+                velocity: Vector2.fromAngle(Math.random() * Math.PI * 2, 30),
+                blendMode: 'additive'
+            });
+        }
+    }
+    
+    affectsPlayer(player) {
+        if (!this.isActive || !player) return false;
+        
+        const playerCenter = player.getCenterPosition();
+        const distance = Vector2.distance(this.position, playerCenter);
+        
+        return distance <= this.radius;
+    }
+    
+    render(ctx, camera) {
+        if (!camera.isInView(this.position, this.radius * 2)) return;
+        
+        const screenPos = camera.worldToScreen(this.position);
+        const scale = camera.zoom;
+        const pulse = Math.sin(this.pulsePhase) * 0.2 + 0.8;
+        const alpha = Math.max(0, 1 - this.age / this.duration);
+        
+        ctx.save();
+        ctx.globalAlpha = alpha * 0.6;
+        
+        // Zone area
+        const radius = this.radius * scale * pulse;
+        const gradient = ctx.createRadialGradient(
+            screenPos.x, screenPos.y, 0,
+            screenPos.x, screenPos.y, radius
+        );
+        gradient.addColorStop(0, this.properties.color + '60');
+        gradient.addColorStop(0.7, this.properties.color + '30');
+        gradient.addColorStop(1, this.properties.color + '00');
+        
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(screenPos.x, screenPos.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Orbiting energy orbs
+        ctx.fillStyle = this.properties.color;
+        ctx.shadowColor = this.properties.color;
+        ctx.shadowBlur = 15 * scale;
+        
+        this.orbs.forEach(orb => {
+            const orbWorldPos = Vector2.add(this.position, orb.position);
+            const orbScreenPos = camera.worldToScreen(orbWorldPos);
+            
+            ctx.beginPath();
+            ctx.arc(orbScreenPos.x, orbScreenPos.y, 6 * scale, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        
+        ctx.restore();
+        
+        // Zone information
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `${12 * scale}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(this.properties.name, screenPos.x, screenPos.y - radius - 30);
+        
+        ctx.font = `${10 * scale}px Arial`;
+        ctx.fillText(this.properties.description, screenPos.x, screenPos.y - radius - 15);
+        
+        // Duration indicator
+        const remainingTime = Math.max(0, this.duration - this.age) / 1000;
+        ctx.fillText(`${remainingTime.toFixed(1)}s`, screenPos.x, screenPos.y + radius + 20);
+    }
+}
+
 // Export classes for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
         Entity, Cell, EjectedMass, ChronoMatter, 
-        TemporalRift, RiftProjectile 
+        TemporalRift, RiftProjectile, AncientArtifact, Wormhole, EnergyStorm, MysteryZone 
     };
 }
