@@ -256,8 +256,8 @@ class GameUtils {
 
     static calculateSpeed(mass) {
         // Improved speed calculation - less harsh penalty for large mass
-        const baseSpeed = 180; // Increased base speed
-        const minSpeed = 60; // Increased minimum speed to prevent freezing
+        const baseSpeed = 1000; // Increased base speed
+        const minSpeed = 300; // Increased minimum speed to prevent freezing
         // Use a gentler curve that doesn't drop speed as dramatically
         const speed = baseSpeed / Math.pow(mass / 100, 0.3); // Changed from sqrt to power of 0.3
         return Math.max(speed, minSpeed);
@@ -426,7 +426,7 @@ const GameConstants = {
     DAILY_AD_LIMIT: 5,
 
     // Game Balance
-    AI_COUNT: 8,
+    AI_COUNT: 15,
     
     // Territory System
     TERRITORY_UPDATE_INTERVAL: 2000, // Update territory every 2 seconds
