@@ -589,7 +589,7 @@ const GameConstants = {
   RIFT_DAMAGE_THRESHOLD: 1.2,
 
   // AI Players
-  AI_COUNT: 25,
+  AI_COUNT: 60,
 
   // Abilities
   STASIS_FIELD_DURATION: 5000,

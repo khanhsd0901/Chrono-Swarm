@@ -65,11 +65,8 @@ class Camera {
     // More aggressive zoom out formula - zooms out much more as player grows
     // Base mass of 100 = zoom 1, mass 400 = zoom 0.5, mass 1600 = zoom 0.25, etc.
     const massScale = playerMass / 100; // Normalize to starting mass
-    const zoomReduction = Math.min(2.5, Math.sqrt(massScale)); // Cap the reduction
-    const baseZoom = Math.max(
-      this.minZoom,
-      Math.min(this.maxZoom, 1 / zoomReduction)
-    );
+    const zoomReduction = 1 + Math.log10(Math.max(1, massScale)) * 0.5; // Điều chỉnh hệ số 0.5 để thay đổi độ nhạy
+    const baseZoom = Math.max(this.minZoom, 1 / zoomReduction);
 
     // Additional zoom out when moving fast for better visibility
     const speedZoomFactor = playerVelocity > 80 ? 0.85 : 1;
@@ -2184,11 +2181,12 @@ class GameEngine {
 
   updateUI() {
     // Update minimap
-    this.renderMinimap();
+    window.uiSystem.updateMinimap(this);
 
     // Update other UI elements through the UI system
     if (window.uiSystem) {
-      window.uiSystem.updateGameUI(this);
+      // Dòng này đã được đổi tên trong file ui.js, cập nhật lại cho đúng
+      window.uiSystem.updateHUD(this);
     }
   }
 
@@ -2396,9 +2394,8 @@ class GameEngine {
       // Check for player discovery
       if (artifact.checkPlayerNearby(this.player)) {
         artifact.auraIntensity = 1;
-
         // Handle discovery input (E key)
-        if (this.keys["KeyE"] && !this.discoveryKeyPressed) {
+        if (this.keys.has("KeyE") && !this.discoveryKeyPressed) {
           this.discoveryKeyPressed = true;
           if (artifact.discover(this.player)) {
             this.applyArtifactEffects(this.player, artifact);
@@ -2411,7 +2408,7 @@ class GameEngine {
     });
 
     // Reset discovery key
-    if (!this.keys["KeyE"]) {
+    if (!this.keys.has("KeyE")) {
       this.discoveryKeyPressed = false;
     }
 
