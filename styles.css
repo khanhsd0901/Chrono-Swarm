@@ -223,7 +223,7 @@ body {
     width: 100vw;
     height: 100vh;
     background: #000011;
-    cursor: none;
+    cursor: crosshair; /* Changed from 'none' to 'crosshair' for better visibility */
 }
 
 /* HUD Styles */

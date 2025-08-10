@@ -255,10 +255,11 @@ class GameUtils {
     }
 
     static calculateSpeed(mass) {
-        // Speed inversely proportional to mass, with a minimum speed
-        const baseSpeed = 150;
-        const minSpeed = 30;
-        const speed = baseSpeed / Math.sqrt(mass / 100);
+        // Improved speed calculation - less harsh penalty for large mass
+        const baseSpeed = 180; // Increased base speed
+        const minSpeed = 60; // Increased minimum speed to prevent freezing
+        // Use a gentler curve that doesn't drop speed as dramatically
+        const speed = baseSpeed / Math.pow(mass / 100, 0.3); // Changed from sqrt to power of 0.3
         return Math.max(speed, minSpeed);
     }
 
@@ -369,8 +370,8 @@ const GameConstants = {
     RECOMBINE_TIME: 15000, // 15 seconds
 
     // Physics
-    FRICTION: 0.95,
-    COLLISION_DAMPING: 0.8,
+    FRICTION: 0.97, // Reduced friction for smoother movement
+    COLLISION_DAMPING: 0.85, // Slightly increased for better collisions
 
     // Chrono-Matter
     MATTER_SPAWN_RATE: 0.3, // per second
@@ -425,7 +426,12 @@ const GameConstants = {
     DAILY_AD_LIMIT: 5,
 
     // Game Balance
-    AI_COUNT: 20,
+    AI_COUNT: 8,
+    
+    // Territory System
+    TERRITORY_UPDATE_INTERVAL: 2000, // Update territory every 2 seconds
+
+    // AI Settings
     AI_DIFFICULTY_SCALING: 1.2,
     LEADERBOARD_SIZE: 10,
 

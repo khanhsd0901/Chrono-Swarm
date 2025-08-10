@@ -546,6 +546,22 @@ class AbilityManager {
             echoes: this.abilities.echo.getActiveEchoes()
         };
     }
+
+    useRandomAbility(player, targetPosition) {
+        // AI players can use abilities strategically
+        if (!player.isAI) return false;
+        
+        const availableAbilities = Object.keys(this.abilities).filter(key => {
+            const ability = this.abilities[key];
+            return ability.canUse(player) && player.level >= ability.unlockLevel;
+        });
+        
+        if (availableAbilities.length === 0) return false;
+        
+        // Choose ability based on situation
+        const randomAbility = availableAbilities[Math.floor(Math.random() * availableAbilities.length)];
+        return this.abilities[randomAbility].use(player, targetPosition);
+    }
 }
 
 // Export for use in other modules

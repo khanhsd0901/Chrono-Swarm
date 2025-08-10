@@ -38,12 +38,26 @@ class Camera {
         if (!player || player.cells.length === 0) return;
 
         const targetPosition = player.getCenterPosition();
-        this.position = Vector2.lerp(this.position, targetPosition, this.smoothing);
+        
+        // Calculate player movement speed for dynamic camera response
+        const playerVelocity = player.cells.reduce((total, cell) => {
+            return total + Vector2.magnitude(cell.velocity);
+        }, 0) / player.cells.length;
+        
+        // Dynamic camera smoothing based on movement speed
+        const dynamicSmoothing = playerVelocity > 100 ? 
+            this.smoothing * 1.3 : // Faster camera when moving fast
+            this.smoothing;
+            
+        this.position = Vector2.lerp(this.position, targetPosition, dynamicSmoothing);
 
-        // Dynamic zoom based on player size
+        // Enhanced dynamic zoom based on player size and movement
         const playerMass = player.getTotalMass();
         const baseZoom = Math.max(this.minZoom, Math.min(this.maxZoom, 100 / Math.sqrt(playerMass)));
-        this.targetZoom = baseZoom;
+        
+        // Slight zoom out when moving fast for better visibility
+        const speedZoomFactor = playerVelocity > 80 ? 0.9 : 1;
+        this.targetZoom = baseZoom * speedZoomFactor;
     }
 
     worldToScreen(worldPos) {
@@ -181,7 +195,7 @@ class Player {
         const direction = Vector2.subtract(targetPosition, playerCenter);
         const distance = Vector2.magnitude(direction);
 
-        if (distance < 5) return; // Too close, don't move
+        if (distance < 3) return; // Reduced dead zone for better responsiveness
 
         const normalizedDirection = Vector2.normalize(direction);
 
@@ -193,9 +207,21 @@ class Player {
             if (window.abilityManager) {
                 slowFactor = window.abilityManager.getStasisSlowFactor(cell, this.id);
             }
-
-            const velocity = Vector2.multiply(normalizedDirection, speed * slowFactor);
-            cell.velocity = Vector2.add(cell.velocity, Vector2.multiply(velocity, deltaTime / 1000));
+            
+            // Enhanced movement with momentum and distance-based acceleration
+            const distanceFactor = Math.min(distance / 100, 1.5); // Accelerate when far from target
+            const responsiveSpeed = speed * slowFactor * distanceFactor;
+            
+            // Improved velocity application for smoother movement
+            const acceleration = Vector2.multiply(normalizedDirection, responsiveSpeed);
+            const accelerationDelta = Vector2.multiply(acceleration, deltaTime / 1000);
+            
+            // Add momentum - larger cells maintain more momentum
+            const momentumFactor = 1 + (cell.mass / 1000); // Larger cells have more momentum
+            cell.velocity = Vector2.add(
+                Vector2.multiply(cell.velocity, 0.95), // Slight velocity retention for momentum
+                Vector2.multiply(accelerationDelta, momentumFactor)
+            );
         });
     }
 
@@ -503,11 +529,21 @@ class AIPlayer extends Player {
         this.state = 'wandering';
         this.target = null;
         this.stateTimer = 0;
-        this.decisionInterval = 1000; // Make decisions every second
+        this.decisionInterval = 300; // Faster decisions - every 300ms instead of 1000ms
         this.lastDecision = 0;
-        this.avoidanceRadius = 100;
-        this.huntRadius = 200;
-        this.fleeRadius = 150;
+        this.avoidanceRadius = 120; // Increased awareness radius
+        this.huntRadius = 250; // Increased hunting range
+        this.fleeRadius = 180; // Increased flee range
+        this.aggressiveness = Math.random() * 0.5 + 0.5; // Random personality trait
+        this.explorationRadius = 400; // How far they explore
+        this.lastTargetChange = 0;
+        this.minTargetTime = 500; // Minimum time to pursue a target
+        
+        // Territorial behavior for shared workspace dynamics
+        this.territoryCenter = null;
+        this.territoryRadius = 300;
+        this.territoryDefense = Math.random() * 0.4 + 0.3; // How much they defend territory
+        this.lastTerritoryUpdate = 0;
     }
 
     update(deltaTime, gameEntities) {
@@ -533,6 +569,12 @@ class AIPlayer extends Player {
         const food = this.findNearbyFood(gameEntities.chronoMatter);
         const rifts = gameEntities.temporalRifts;
 
+        // Update territory for shared workspace dynamics
+        this.updateTerritory();
+
+        // Dynamic formation changes based on situation
+        this.updateFormationStrategy(threats, prey);
+
         // State machine
         switch (this.state) {
             case 'wandering':
@@ -542,7 +584,7 @@ class AIPlayer extends Player {
                 this.handleHunting(threats, prey, food, rifts);
                 break;
             case 'fleeing':
-                this.handleFleeing(threats, food, rifts);
+                this.handleFleeing(threats, prey, food, rifts);
                 break;
             case 'feeding':
                 this.handleFeeding(threats, prey, food, rifts);
@@ -552,6 +594,25 @@ class AIPlayer extends Player {
         // Execute movement based on current target
         if (this.target) {
             this.moveTowards(this.target, deltaTime);
+        }
+    }
+
+    updateFormationStrategy(threats, prey) {
+        // Change formations based on tactical situation
+        if (this.cells.length >= 3) {
+            if (threats.length > 0) {
+                // Use phalanx formation when fleeing for protection
+                this.formation = 'phalanx';
+            } else if (prey.length > 0 && this.aggressiveness > 0.6) {
+                // Use pinwheel formation when hunting for better coverage
+                this.formation = 'pinwheel';
+            } else if (this.state === 'feeding') {
+                // Use grid formation when feeding for efficiency
+                this.formation = 'grid';
+            } else {
+                // Default formation for wandering
+                this.formation = Math.random() < 0.3 ? 'orbit' : 'default';
+            }
         }
     }
 
@@ -625,13 +686,15 @@ class AIPlayer extends Player {
         if (threats.length > 0) {
             this.state = 'fleeing';
             this.target = this.calculateFleePosition(threats);
+            this.lastTargetChange = Date.now();
             return;
         }
 
-        // Look for hunting opportunities
-        if (prey.length > 0 && this.getTotalMass() > 150) {
+        // Look for hunting opportunities (more aggressive)
+        if (prey.length > 0 && this.getTotalMass() > 100 * this.aggressiveness) {
             this.state = 'hunting';
             this.target = prey[0].player.getCenterPosition();
+            this.lastTargetChange = Date.now();
             return;
         }
 
@@ -639,13 +702,22 @@ class AIPlayer extends Player {
         if (food.length > 0) {
             this.state = 'feeding';
             this.target = food[0].matter.position;
+            this.lastTargetChange = Date.now();
             return;
         }
 
-        // Random wandering
-        if (this.stateTimer > 3000 || !this.target) {
+        // More active wandering - shorter intervals and more dynamic movement
+        const timeSinceLastTarget = Date.now() - this.lastTargetChange;
+        if (this.stateTimer > 1500 || !this.target || timeSinceLastTarget > 2000) {
             this.target = this.generateRandomTarget();
             this.stateTimer = 0;
+            this.lastTargetChange = Date.now();
+        }
+        
+        // Occasionally change direction even with a target for more dynamic movement
+        if (timeSinceLastTarget > this.minTargetTime && Math.random() < 0.3) {
+            this.target = this.generateRandomTarget();
+            this.lastTargetChange = Date.now();
         }
     }
 
@@ -654,6 +726,7 @@ class AIPlayer extends Player {
         if (threats.length > 0) {
             this.state = 'fleeing';
             this.target = this.calculateFleePosition(threats);
+            this.lastTargetChange = Date.now();
             return;
         }
 
@@ -661,20 +734,28 @@ class AIPlayer extends Player {
         if (prey.length > 0) {
             this.target = prey[0].player.getCenterPosition();
             
-            // Try to split if close enough for a kill
+            // More aggressive splitting behavior
             const distance = Vector2.distance(this.getCenterPosition(), this.target);
-            if (distance < 100 && this.cells.length < 4) {
+            const shouldSplit = distance < 120 * this.aggressiveness && this.cells.length < 6;
+            
+            if (shouldSplit && this.getTotalMass() > 150) {
                 const direction = Vector2.subtract(this.target, this.getCenterPosition());
                 this.split(direction);
+            }
+            
+            // Use abilities strategically
+            if (distance < 100 && window.abilityManager && Math.random() < 0.1) {
+                window.abilityManager.useRandomAbility(this, this.target);
             }
         } else {
             // No more prey, go back to wandering
             this.state = 'wandering';
             this.stateTimer = 0;
+            this.lastTargetChange = Date.now();
         }
     }
 
-    handleFleeing(threats, food, rifts) {
+    handleFleeing(threats, prey, food, rifts) {
         if (threats.length > 0) {
             this.target = this.calculateFleePosition(threats);
             
@@ -701,15 +782,26 @@ class AIPlayer extends Player {
         if (threats.length > 0) {
             this.state = 'fleeing';
             this.target = this.calculateFleePosition(threats);
+            this.lastTargetChange = Date.now();
             return;
         }
 
-        // Continue feeding
+        // Continue feeding with smarter food selection
         if (food.length > 0) {
+            // Choose closest food for efficiency
             this.target = food[0].matter.position;
+            
+            // If very close to food, look for opportunities while feeding
+            const distance = Vector2.distance(this.getCenterPosition(), this.target);
+            if (distance < 30 && prey.length > 0 && this.aggressiveness > 0.7) {
+                this.state = 'hunting';
+                this.target = prey[0].player.getCenterPosition();
+                this.lastTargetChange = Date.now();
+                return;
+            }
         } else {
             // No more food, check for hunting or wander
-            if (prey.length > 0 && this.getTotalMass() > 150) {
+            if (prey.length > 0 && this.getTotalMass() > 120 * this.aggressiveness) {
                 this.state = 'hunting';
                 this.target = prey[0].player.getCenterPosition();
             } else {
@@ -717,6 +809,7 @@ class AIPlayer extends Player {
                 this.target = this.generateRandomTarget();
             }
             this.stateTimer = 0;
+            this.lastTargetChange = Date.now();
         }
     }
 
@@ -740,8 +833,34 @@ class AIPlayer extends Player {
 
     generateRandomTarget() {
         const myPosition = this.getCenterPosition();
-        const angle = Math.random() * Math.PI * 2;
-        const distance = MathUtils.random(100, 200);
+        
+        // More varied movement patterns based on AI personality
+        let distance, angle;
+        
+        if (this.aggressiveness > 0.7) {
+            // Aggressive AIs move in larger, bolder patterns
+            distance = MathUtils.random(150, this.explorationRadius);
+            angle = Math.random() * Math.PI * 2;
+        } else if (this.aggressiveness < 0.3) {
+            // Cautious AIs make smaller, more careful movements
+            distance = MathUtils.random(80, 200);
+            angle = Math.random() * Math.PI * 2;
+        } else {
+            // Balanced AIs have medium range movement
+            distance = MathUtils.random(120, 300);
+            angle = Math.random() * Math.PI * 2;
+        }
+        
+        // Add some bias towards arena center to prevent edge camping
+        const arenaCenter = new Vector2(GameConstants.ARENA_WIDTH / 2, GameConstants.ARENA_HEIGHT / 2);
+        const distanceFromCenter = Vector2.distance(myPosition, arenaCenter);
+        
+        if (distanceFromCenter > GameConstants.ARENA_WIDTH * 0.35) {
+            // If too far from center, bias movement towards center
+            const centerDirection = Vector2.subtract(arenaCenter, myPosition);
+            const centerAngle = Math.atan2(centerDirection.y, centerDirection.x);
+            angle = centerAngle + (Math.random() - 0.5) * Math.PI * 0.5; // Add some randomness
+        }
         
         let target = Vector2.add(myPosition, Vector2.fromAngle(angle, distance));
         
@@ -750,6 +869,69 @@ class AIPlayer extends Player {
         target.y = MathUtils.clamp(target.y, GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING);
         
         return target;
+    }
+
+    updateTerritory() {
+        const now = Date.now();
+        if (now - this.lastTerritoryUpdate < GameConstants.TERRITORY_UPDATE_INTERVAL) {
+            return;
+        }
+
+        this.lastTerritoryUpdate = now;
+
+        const myPosition = this.getCenterPosition();
+        const myMass = this.getTotalMass();
+
+        // Check if I'm in a territory
+        if (this.territoryCenter) {
+            const distanceToCenter = Vector2.distance(myPosition, this.territoryCenter);
+            if (distanceToCenter > this.territoryRadius) {
+                // If outside territory, try to re-establish or find a new one
+                this.territoryCenter = null;
+                this.territoryRadius = Math.random() * 0.4 + 0.3; // Smaller radius for wandering
+            }
+        } else {
+            // If not in a territory, try to find one
+            const playersInTerritory = this.findPlayersInTerritory(this.territoryRadius);
+            if (playersInTerritory.length > 0) {
+                // Found a territory, establish it
+                this.territoryCenter = this.getCenterPosition();
+                this.territoryRadius = Math.max(this.territoryRadius, Vector2.distance(this.territoryCenter, myPosition));
+            }
+        }
+
+        // If in a territory, defend it
+        if (this.territoryCenter) {
+            const playersInTerritory = this.findPlayersInTerritory(this.territoryRadius);
+            if (playersInTerritory.length > 0) {
+                // Defend the territory
+                this.formation = 'phalanx'; // Strong defensive formation
+                this.target = this.territoryCenter; // Move towards center
+                this.lastTargetChange = Date.now();
+            } else {
+                // No players in territory, try to expand it
+                this.territoryRadius *= 1.1; // Slightly expand territory
+                this.territoryCenter = this.getCenterPosition(); // Recalculate center
+            }
+        }
+    }
+
+    findPlayersInTerritory(radius) {
+        const playersInTerritory = [];
+        const myPosition = this.getCenterPosition();
+
+        // Access players from the game engine instance
+        if (window.game && window.game.aiPlayers) {
+            for (const player of window.game.aiPlayers) {
+                if (player === this || !player.isAlive) continue;
+
+                const distance = Vector2.distance(myPosition, player.getCenterPosition());
+                if (distance < radius) {
+                    playersInTerritory.push(player);
+                }
+            }
+        }
+        return playersInTerritory;
     }
 }
 
