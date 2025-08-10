@@ -1389,8 +1389,9 @@ class GameEngine {
         this.setupCanvas();
         this.setupInputHandlers();
         
-        // Initialize chunk manager for dynamic loading
-        this.chunkManager = new ChunkManager(this);
+        // Initialize chunk manager for dynamic loading (commented out until ChunkManager is implemented)
+        // this.chunkManager = new ChunkManager(this);
+        this.chunkManager = null;
         
         this.initializeWorld();
         
