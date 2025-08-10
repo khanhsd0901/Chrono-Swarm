@@ -529,21 +529,33 @@ class AIPlayer extends Player {
         this.state = 'wandering';
         this.target = null;
         this.stateTimer = 0;
-        this.decisionInterval = 300; // Faster decisions - every 300ms instead of 1000ms
+        this.decisionInterval = MathUtils.random(200, 400); // Varied decision speed for more human-like behavior
         this.lastDecision = 0;
-        this.avoidanceRadius = 120; // Increased awareness radius
-        this.huntRadius = 250; // Increased hunting range
-        this.fleeRadius = 180; // Increased flee range
-        this.aggressiveness = Math.random() * 0.5 + 0.5; // Random personality trait
-        this.explorationRadius = 400; // How far they explore
+        this.avoidanceRadius = MathUtils.random(100, 150); // Varied awareness
+        this.huntRadius = MathUtils.random(200, 300); // Varied hunting range
+        this.fleeRadius = MathUtils.random(150, 200); // Varied flee range
+        this.aggressiveness = Math.random(); // Full range personality trait
+        this.explorationRadius = MathUtils.random(300, 500); // Varied exploration
         this.lastTargetChange = 0;
-        this.minTargetTime = 500; // Minimum time to pursue a target
+        this.minTargetTime = MathUtils.random(400, 800); // Varied target persistence
+        
+        // Enhanced personality traits
+        this.patience = Math.random(); // How long they wait for opportunities
+        this.riskTaking = Math.random(); // How much risk they take
+        this.teamwork = Math.random(); // How likely to cooperate with other AIs
+        this.adaptability = Math.random(); // How quickly they change strategies
         
         // Territorial behavior for shared workspace dynamics
         this.territoryCenter = null;
-        this.territoryRadius = 300;
+        this.territoryRadius = MathUtils.random(250, 350);
         this.territoryDefense = Math.random() * 0.4 + 0.3; // How much they defend territory
         this.lastTerritoryUpdate = 0;
+        
+        // Human-like behavior patterns
+        this.preferredDirection = Math.random() * Math.PI * 2; // Preferred movement direction
+        this.lastAbilityUse = 0;
+        this.abilityUseCooldown = MathUtils.random(3000, 8000); // Varied ability usage
+        this.movementStyle = Math.random(); // 0-1 for different movement patterns
     }
 
     update(deltaTime, gameEntities) {
@@ -568,9 +580,13 @@ class AIPlayer extends Player {
         const prey = this.findPrey(gameEntities.players);
         const food = this.findNearbyFood(gameEntities.chronoMatter);
         const rifts = gameEntities.temporalRifts;
+        const allies = this.findAllies(gameEntities.players);
 
         // Update territory for shared workspace dynamics
         this.updateTerritory();
+
+        // AI coordination and teamwork
+        this.coordinateWithAllies(allies, threats, prey);
 
         // Dynamic formation changes based on situation
         this.updateFormationStrategy(threats, prey);
@@ -591,9 +607,55 @@ class AIPlayer extends Player {
                 break;
         }
 
-        // Execute movement based on current target
+        // Execute movement based on current target with human-like behavior
         if (this.target) {
-            this.moveTowards(this.target, deltaTime);
+            // Add human-like imperfection and strategic decisions
+            this.executeHumanLikeMovement(deltaTime, threats, prey);
+                 }
+     }
+
+    executeHumanLikeMovement(deltaTime, threats, prey) {
+        // Human-like movement with occasional hesitation and strategic decisions
+        const distance = Vector2.distance(this.getCenterPosition(), this.target);
+        
+        // Strategic ejecting behavior
+        if (this.getTotalMass() > 300 && Math.random() < 0.02 && this.riskTaking > 0.5) {
+            // Occasionally eject mass to move faster or as bait
+            const ejectDirection = Vector2.subtract(this.target, this.getCenterPosition());
+            this.ejectMass(Vector2.normalize(ejectDirection));
+        }
+        
+        // Human-like hesitation near threats
+        let movementModifier = 1.0;
+        if (threats.length > 0) {
+            const nearestThreat = threats[0];
+            if (nearestThreat.distance < 100) {
+                // Hesitate when very close to threats
+                movementModifier = 0.3 + this.riskTaking * 0.4;
+            }
+        }
+        
+        // Occasional "mistakes" or suboptimal moves for realism
+        if (Math.random() < 0.05) {
+            // Sometimes move in slightly wrong direction
+            const errorAngle = (Math.random() - 0.5) * Math.PI * 0.3;
+            const currentDirection = Vector2.subtract(this.target, this.getCenterPosition());
+            const rotatedDirection = {
+                x: currentDirection.x * Math.cos(errorAngle) - currentDirection.y * Math.sin(errorAngle),
+                y: currentDirection.x * Math.sin(errorAngle) + currentDirection.y * Math.cos(errorAngle)
+            };
+            this.target = Vector2.add(this.getCenterPosition(), Vector2.normalize(rotatedDirection));
+        }
+        
+        // Execute movement with modifier
+        this.moveTowards(this.target, deltaTime * movementModifier);
+        
+        // Strategic splitting during movement
+        if (distance > 150 && this.cells.length === 1 && this.getTotalMass() > 200 && 
+            Math.random() < (this.aggressiveness * 0.1)) {
+            // Split to move faster towards target
+            const direction = Vector2.subtract(this.target, this.getCenterPosition());
+            this.split(direction);
         }
     }
 
@@ -681,6 +743,76 @@ class AIPlayer extends Player {
         return food.sort((a, b) => b.priority - a.priority);
     }
 
+    findAllies(players) {
+        const allies = [];
+        const myPosition = this.getCenterPosition();
+        const myMass = this.getTotalMass();
+
+        for (const player of players) {
+            if (player === this || !player.isAlive || !player.isAI) continue;
+
+            const distance = Vector2.distance(myPosition, player.getCenterPosition());
+            const theirMass = player.getTotalMass();
+            const massRatio = Math.abs(myMass - theirMass) / Math.max(myMass, theirMass);
+
+            // Consider as ally if similar size and nearby
+            if (distance < 300 && massRatio < 0.5) {
+                allies.push({
+                    player: player,
+                    distance: distance,
+                    cooperation: this.teamwork * player.teamwork // Mutual cooperation
+                });
+            }
+        }
+
+        return allies.sort((a, b) => b.cooperation - a.cooperation);
+    }
+
+    coordinateWithAllies(allies, threats, prey) {
+        if (allies.length === 0 || this.teamwork < 0.3) return;
+
+        const strongAllies = allies.filter(ally => ally.cooperation > 0.4);
+        
+        if (strongAllies.length > 0) {
+            // Coordinate hunting if there are threats to player
+            const humanPlayer = window.game?.player;
+            if (humanPlayer && !humanPlayer.isAI && humanPlayer.isAlive) {
+                const distanceToHuman = Vector2.distance(this.getCenterPosition(), humanPlayer.getCenterPosition());
+                const humanMass = humanPlayer.getTotalMass();
+                const myMass = this.getTotalMass();
+                
+                // Gang up on human player if they're getting too strong
+                if (distanceToHuman < 400 && humanMass > myMass * 1.5 && this.teamwork > 0.6) {
+                    this.state = 'hunting';
+                    this.target = humanPlayer.getCenterPosition();
+                    this.lastTargetChange = Date.now();
+                    
+                    // Signal other AIs to join the hunt (simplified coordination)
+                    strongAllies.forEach(ally => {
+                        if (Math.random() < ally.cooperation) {
+                            ally.player.state = 'hunting';
+                            ally.player.target = humanPlayer.getCenterPosition();
+                            ally.player.lastTargetChange = Date.now();
+                        }
+                    });
+                    return;
+                }
+            }
+            
+            // Coordinate against large threats
+            const bigThreats = threats.filter(threat => threat.player.getTotalMass() > this.getTotalMass() * 2);
+            if (bigThreats.length > 0 && strongAllies.length >= 2) {
+                // Multiple AIs can work together to take down big players
+                const target = bigThreats[0].player;
+                if (Math.random() < this.teamwork * 0.5) {
+                    this.state = 'hunting';
+                    this.target = target.getCenterPosition();
+                    this.lastTargetChange = Date.now();
+                }
+            }
+        }
+    }
+
     handleWandering(threats, prey, food, rifts) {
         // Check for immediate threats
         if (threats.length > 0) {
@@ -690,32 +822,58 @@ class AIPlayer extends Player {
             return;
         }
 
-        // Look for hunting opportunities (more aggressive)
-        if (prey.length > 0 && this.getTotalMass() > 100 * this.aggressiveness) {
-            this.state = 'hunting';
-            this.target = prey[0].player.getCenterPosition();
-            this.lastTargetChange = Date.now();
-            return;
+        // Strategic hunting based on personality and situation
+        if (prey.length > 0) {
+            const shouldHunt = this.getTotalMass() > 80 * this.aggressiveness && 
+                             (this.riskTaking > 0.4 || this.getTotalMass() > prey[0].player.getTotalMass() * 1.5);
+            
+            if (shouldHunt) {
+                this.state = 'hunting';
+                this.target = prey[0].player.getCenterPosition();
+                this.lastTargetChange = Date.now();
+                return;
+            }
         }
 
-        // Look for food
+        // Smart food prioritization
         if (food.length > 0) {
-            this.state = 'feeding';
-            this.target = food[0].matter.position;
-            this.lastTargetChange = Date.now();
-            return;
+            // Sometimes ignore food if hunting is more profitable
+            const shouldFeed = this.patience > 0.3 || prey.length === 0 || this.getTotalMass() < 200;
+            
+            if (shouldFeed) {
+                this.state = 'feeding';
+                this.target = food[0].matter.position;
+                this.lastTargetChange = Date.now();
+                return;
+            }
         }
 
-        // More active wandering - shorter intervals and more dynamic movement
+        // Explore temporal rifts strategically
+        if (rifts && rifts.length > 0 && this.riskTaking > 0.6) {
+            const nearestRift = rifts.find(rift => {
+                const distance = Vector2.distance(this.getCenterPosition(), rift.position);
+                return distance < 400;
+            });
+            
+            if (nearestRift) {
+                this.target = nearestRift.position;
+                this.lastTargetChange = Date.now();
+                return;
+            }
+        }
+
+        // More active wandering with personality-based patterns
         const timeSinceLastTarget = Date.now() - this.lastTargetChange;
-        if (this.stateTimer > 1500 || !this.target || timeSinceLastTarget > 2000) {
+        const wanderInterval = 1000 + (this.patience * 1500); // Patient AIs wander less frequently
+        
+        if (this.stateTimer > wanderInterval || !this.target || timeSinceLastTarget > 3000) {
             this.target = this.generateRandomTarget();
             this.stateTimer = 0;
             this.lastTargetChange = Date.now();
         }
         
-        // Occasionally change direction even with a target for more dynamic movement
-        if (timeSinceLastTarget > this.minTargetTime && Math.random() < 0.3) {
+        // Dynamic direction changes based on adaptability
+        if (timeSinceLastTarget > this.minTargetTime && Math.random() < (0.2 + this.adaptability * 0.3)) {
             this.target = this.generateRandomTarget();
             this.lastTargetChange = Date.now();
         }
@@ -732,20 +890,49 @@ class AIPlayer extends Player {
 
         // Continue hunting if target is still valid
         if (prey.length > 0) {
-            this.target = prey[0].player.getCenterPosition();
+            // Choose target based on strategy and personality
+            let targetPrey = prey[0];
             
-            // More aggressive splitting behavior
+            // Smart AIs might choose easier targets or avoid risky ones
+            if (this.riskTaking < 0.4 && prey.length > 1) {
+                // Choose safer target (smaller and closer)
+                targetPrey = prey.reduce((best, current) => {
+                    const bestScore = best.player.getTotalMass() / best.distance;
+                    const currentScore = current.player.getTotalMass() / current.distance;
+                    return currentScore < bestScore ? current : best;
+                });
+            }
+            
+            this.target = targetPrey.player.getCenterPosition();
             const distance = Vector2.distance(this.getCenterPosition(), this.target);
-            const shouldSplit = distance < 120 * this.aggressiveness && this.cells.length < 6;
             
-            if (shouldSplit && this.getTotalMass() > 150) {
+            // Strategic splitting based on personality and situation
+            const shouldSplit = distance < (100 + this.aggressiveness * 50) && 
+                              this.cells.length < (4 + this.riskTaking * 4) &&
+                              this.getTotalMass() > (120 + this.patience * 80);
+            
+            if (shouldSplit) {
                 const direction = Vector2.subtract(this.target, this.getCenterPosition());
                 this.split(direction);
             }
             
-            // Use abilities strategically
-            if (distance < 100 && window.abilityManager && Math.random() < 0.1) {
+            // Use abilities strategically based on personality
+            const now = Date.now();
+            if (distance < 120 && window.abilityManager && 
+                now - this.lastAbilityUse > this.abilityUseCooldown &&
+                Math.random() < (0.05 + this.aggressiveness * 0.15)) {
+                
                 window.abilityManager.useRandomAbility(this, this.target);
+                this.lastAbilityUse = now;
+                this.abilityUseCooldown = MathUtils.random(2000, 6000); // Reset cooldown
+            }
+            
+            // Occasionally feint or change tactics
+            if (this.adaptability > 0.7 && Math.random() < 0.1) {
+                const feintTarget = this.generateRandomTarget();
+                if (Vector2.distance(this.getCenterPosition(), feintTarget) < 100) {
+                    this.target = feintTarget;
+                }
             }
         } else {
             // No more prey, go back to wandering
@@ -834,21 +1021,36 @@ class AIPlayer extends Player {
     generateRandomTarget() {
         const myPosition = this.getCenterPosition();
         
-        // More varied movement patterns based on AI personality
+        // Human-like movement patterns based on personality and movement style
         let distance, angle;
         
+        // Base movement on personality
         if (this.aggressiveness > 0.7) {
             // Aggressive AIs move in larger, bolder patterns
             distance = MathUtils.random(150, this.explorationRadius);
-            angle = Math.random() * Math.PI * 2;
         } else if (this.aggressiveness < 0.3) {
             // Cautious AIs make smaller, more careful movements
             distance = MathUtils.random(80, 200);
-            angle = Math.random() * Math.PI * 2;
         } else {
             // Balanced AIs have medium range movement
             distance = MathUtils.random(120, 300);
-            angle = Math.random() * Math.PI * 2;
+        }
+        
+        // Human-like directional preferences
+        if (this.movementStyle < 0.3) {
+            // Circular/orbital movement pattern
+            this.preferredDirection += (Math.random() - 0.5) * Math.PI * 0.3;
+            angle = this.preferredDirection;
+        } else if (this.movementStyle < 0.6) {
+            // Zigzag movement pattern
+            angle = this.preferredDirection + Math.sin(Date.now() * 0.001) * Math.PI * 0.5;
+        } else {
+            // More random but with slight bias to preferred direction
+            angle = this.preferredDirection + (Math.random() - 0.5) * Math.PI * 1.5;
+            // Occasionally update preferred direction
+            if (Math.random() < 0.1) {
+                this.preferredDirection = Math.random() * Math.PI * 2;
+            }
         }
         
         // Add some bias towards arena center to prevent edge camping
@@ -860,6 +1062,11 @@ class AIPlayer extends Player {
             const centerDirection = Vector2.subtract(arenaCenter, myPosition);
             const centerAngle = Math.atan2(centerDirection.y, centerDirection.x);
             angle = centerAngle + (Math.random() - 0.5) * Math.PI * 0.5; // Add some randomness
+        }
+        
+        // Human-like hesitation and course corrections
+        if (Math.random() < 0.15) {
+            distance *= 0.5; // Sometimes make shorter moves
         }
         
         let target = Vector2.add(myPosition, Vector2.fromAngle(angle, distance));
@@ -1556,7 +1763,7 @@ class GameEngine {
         
         // Update progression
         if (this.playerProgression) {
-            this.playerProgression.addXP(xpGained);
+            this.playerProgression.gainXP(xpGained);
             this.playerProgression.updateStatistics({
                 gamesPlayed: 1,
                 totalSurvivalTime: finalStats.survivalTime,

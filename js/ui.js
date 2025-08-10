@@ -341,6 +341,12 @@ class UISystem {
         const canvas = this.elements.minimap;
         const ctx = canvas.getContext('2d');
         
+        // Set canvas dimensions if not set
+        if (canvas.width === 0 || canvas.height === 0) {
+            canvas.width = 200;
+            canvas.height = 200;
+        }
+        
         // Clear minimap
         ctx.fillStyle = 'rgba(10, 10, 26, 0.8)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
