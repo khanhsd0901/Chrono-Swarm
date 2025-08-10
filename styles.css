@@ -616,6 +616,26 @@ body {
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
 }
 
+.store-item.owned {
+    border-color: rgba(0, 255, 0, 0.5);
+}
+
+.store-item.equipped {
+    border-color: #ffaa00;
+    box-shadow: 0 0 20px rgba(255, 170, 0, 0.4);
+    background: rgba(255, 170, 0, 0.1);
+}
+
+.store-item.equipped .item-price {
+    color: #ffaa00;
+    font-weight: bold;
+}
+
+.store-item.locked {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .store-item-preview {
     width: 100%;
     height: 120px;
@@ -638,6 +658,42 @@ body {
     font-family: 'Orbitron', monospace;
     color: #ffff00;
     font-weight: 700;
+}
+
+.buy-button, .equip-button {
+    background: linear-gradient(45deg, #00ffff, #0088ff);
+    border: none;
+    border-radius: 6px;
+    color: #000000;
+    font-family: 'Orbitron', monospace;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    margin-top: 0.5rem;
+}
+
+.buy-button:hover, .equip-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 15px rgba(0, 255, 255, 0.6);
+}
+
+.buy-button:disabled {
+    background: rgba(128, 128, 128, 0.5);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.equip-button {
+    background: linear-gradient(45deg, #ffaa00, #ff8800);
+}
+
+.equip-button:hover {
+    box-shadow: 0 3px 15px rgba(255, 170, 0, 0.6);
 }
 
 /* Settings Styles */
