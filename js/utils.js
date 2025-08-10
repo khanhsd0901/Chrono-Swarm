@@ -85,6 +85,10 @@ class Color {
         );
     }
 
+    clone() {
+        return new Color(this.r, this.g, this.b, this.a);
+    }
+
     static hslToRgb(h, s, l) {
         h /= 360;
         s /= 100;

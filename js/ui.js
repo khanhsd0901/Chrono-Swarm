@@ -623,7 +623,9 @@ class UISystem {
         // Show minimap
         this.elements.showMinimap?.addEventListener('change', (e) => {
             this.saveGameSetting('showMinimap', e.target.checked);
-            this.elements.minimap?.style.display = e.target.checked ? 'block' : 'none';
+            if (this.elements.minimap) {
+                this.elements.minimap.style.display = e.target.checked ? 'block' : 'none';
+            }
         });
         
         // Show damage numbers
