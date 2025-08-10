@@ -538,6 +538,15 @@ class ParticleSystem {
     getParticleCount() {
         return this.particles.length;
     }
+
+    setMaxParticles(max) {
+        this.maxParticles = max;
+        // If we currently have more particles than the new limit, remove excess
+        if (this.particles.length > this.maxParticles) {
+            const excess = this.particles.length - this.maxParticles;
+            this.particles.splice(0, excess);
+        }
+    }
 }
 
 class ParticleEmitter {
