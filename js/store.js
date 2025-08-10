@@ -20,6 +20,17 @@ class StoreSystem {
     initializeStoreItems() {
         return {
             evolutions: [
+                // Free/Low Cost Items (5)
+                {
+                    id: 'evo_basic_glow',
+                    name: 'Basic Glow',
+                    description: 'Simple luminescent effect for your swarm',
+                    price: 0, // Free
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ffffff, #cccccc)',
+                    rarity: 'common',
+                    currency: 'experience'
+                },
                 {
                     id: 'evo_plasma_core',
                     name: 'Plasma Core',
@@ -27,7 +38,8 @@ class StoreSystem {
                     price: 250,
                     type: 'evolution',
                     preview: 'linear-gradient(45deg, #ff0080, #8000ff)',
-                    rarity: 'common'
+                    rarity: 'common',
+                    currency: 'experience'
                 },
                 {
                     id: 'evo_crystal_matrix',
@@ -36,38 +48,195 @@ class StoreSystem {
                     price: 500,
                     type: 'evolution',
                     preview: 'linear-gradient(45deg, #00ffff, #ffffff)',
-                    rarity: 'rare'
+                    rarity: 'rare',
+                    currency: 'experience'
                 },
+                {
+                    id: 'evo_bio_luminescence',
+                    name: 'Bio Luminescence',
+                    description: 'Natural bioluminescent glow like deep sea creatures',
+                    price: 750,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #00ff88, #44ffaa)',
+                    rarity: 'rare',
+                    currency: 'experience'
+                },
+                {
+                    id: 'evo_electric_storm',
+                    name: 'Electric Storm',
+                    description: 'Crackling electricity surrounds your cells',
+                    price: 1000,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ffff00, #00ffff)',
+                    rarity: 'epic',
+                    currency: 'experience'
+                },
+                
+                // Shard-Required Items (15)
                 {
                     id: 'evo_shadow_void',
                     name: 'Shadow Void',
                     description: 'Dark energy that absorbs light itself',
-                    price: 750,
+                    price: 50,
                     type: 'evolution',
                     preview: 'linear-gradient(45deg, #000000, #440044)',
-                    rarity: 'epic'
+                    rarity: 'epic',
+                    currency: 'shards'
                 },
                 {
                     id: 'evo_temporal_flux',
                     name: 'Temporal Flux',
                     description: 'Swirling time energy with reality distortions',
-                    price: 1000,
+                    price: 75,
                     type: 'evolution',
                     preview: 'linear-gradient(45deg, #ffff00, #00ffff)',
-                    rarity: 'legendary'
+                    rarity: 'legendary',
+                    currency: 'shards'
                 },
                 {
                     id: 'evo_cosmic_storm',
                     name: 'Cosmic Storm',
                     description: 'Stellar matter from the heart of a galaxy',
-                    price: 1500,
+                    price: 100,
                     type: 'evolution',
                     preview: 'linear-gradient(45deg, #ff4400, #ffaa00)',
-                    rarity: 'mythic'
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_antimatter_core',
+                    name: 'Antimatter Core',
+                    description: 'Dangerous antimatter energy contained within',
+                    price: 80,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ff0000, #000000)',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_quantum_field',
+                    name: 'Quantum Field',
+                    description: 'Quantum probability clouds surround your swarm',
+                    price: 120,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #8800ff, #ff0088)',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_phoenix_flame',
+                    name: 'Phoenix Flame',
+                    description: 'Eternal flames that never extinguish',
+                    price: 90,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ff6600, #ffaa00)',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_ice_crystal_core',
+                    name: 'Ice Crystal Core',
+                    description: 'Frozen energy that radiates cold power',
+                    price: 65,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #aaffff, #ffffff)',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_molten_magma',
+                    name: 'Molten Magma',
+                    description: 'Flowing lava core with intense heat',
+                    price: 70,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ff3300, #ff6600)',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_stellar_nova',
+                    name: 'Stellar Nova',
+                    description: 'Explosive stellar energy like a dying star',
+                    price: 150,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ffffff, #ffff88)',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_dark_matter',
+                    name: 'Dark Matter',
+                    description: 'Invisible matter that bends space around it',
+                    price: 200,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #220022, #000000)',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_rainbow_prism',
+                    name: 'Rainbow Prism',
+                    description: 'Light-splitting prismatic energy core',
+                    price: 85,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff)',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_void_walker',
+                    name: 'Void Walker',
+                    description: 'Phase between dimensions with void energy',
+                    price: 180,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #440088, #000044)',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_celestial_aura',
+                    name: 'Celestial Aura',
+                    description: 'Divine energy blessed by ancient cosmic forces',
+                    price: 250,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ffdd88, #ffffff)',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_neon_cyber',
+                    name: 'Neon Cyber',
+                    description: 'Digital cyberpunk aesthetic with neon highlights',
+                    price: 60,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #00ffaa, #ff0088)',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'evo_primordial_chaos',
+                    name: 'Primordial Chaos',
+                    description: 'Raw chaotic energy from the beginning of time',
+                    price: 300,
+                    type: 'evolution',
+                    preview: 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff, #ffff00)',
+                    rarity: 'mythic',
+                    currency: 'shards'
                 }
             ],
             
             effects: [
+                // Free/Low Cost Items (5)
+                {
+                    id: 'fx_basic_sparkle',
+                    name: 'Basic Sparkle',
+                    description: 'Simple sparkling effect around your swarm',
+                    price: 0, // Free
+                    type: 'effect',
+                    preview: '#ffffff',
+                    rarity: 'common',
+                    currency: 'experience'
+                },
                 {
                     id: 'fx_lightning_aura',
                     name: 'Lightning Aura',
@@ -75,7 +244,8 @@ class StoreSystem {
                     price: 300,
                     type: 'effect',
                     preview: '#ffff00',
-                    rarity: 'common'
+                    rarity: 'common',
+                    currency: 'experience'
                 },
                 {
                     id: 'fx_fire_corona',
@@ -84,7 +254,8 @@ class StoreSystem {
                     price: 400,
                     type: 'effect',
                     preview: '#ff4400',
-                    rarity: 'common'
+                    rarity: 'common',
+                    currency: 'experience'
                 },
                 {
                     id: 'fx_ice_crystal',
@@ -93,29 +264,185 @@ class StoreSystem {
                     price: 600,
                     type: 'effect',
                     preview: '#aaffff',
-                    rarity: 'rare'
+                    rarity: 'rare',
+                    currency: 'experience'
                 },
+                {
+                    id: 'fx_wind_spiral',
+                    name: 'Wind Spiral',
+                    description: 'Swirling wind patterns around your cells',
+                    price: 800,
+                    type: 'effect',
+                    preview: '#88ccff',
+                    rarity: 'rare',
+                    currency: 'experience'
+                },
+                
+                // Shard-Required Items (15)
                 {
                     id: 'fx_quantum_distortion',
                     name: 'Quantum Distortion',
                     description: 'Reality bends and warps around your presence',
-                    price: 800,
+                    price: 40,
                     type: 'effect',
                     preview: '#ff00ff',
-                    rarity: 'epic'
+                    rarity: 'epic',
+                    currency: 'shards'
                 },
                 {
                     id: 'fx_gravitational_field',
                     name: 'Gravitational Field',
                     description: 'Space-time curves visibly around your swarm',
-                    price: 1200,
+                    price: 60,
                     type: 'effect',
                     preview: '#4400ff',
-                    rarity: 'legendary'
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_plasma_storm',
+                    name: 'Plasma Storm',
+                    description: 'Violent plasma energy storms around your swarm',
+                    price: 50,
+                    type: 'effect',
+                    preview: '#ff0088',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_shadow_tendrils',
+                    name: 'Shadow Tendrils',
+                    description: 'Dark tentacles reach out from your cells',
+                    price: 45,
+                    type: 'effect',
+                    preview: '#220044',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_temporal_rift',
+                    name: 'Temporal Rift',
+                    description: 'Time rifts tear open around your movement',
+                    price: 80,
+                    type: 'effect',
+                    preview: '#88ffff',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_cosmic_radiation',
+                    name: 'Cosmic Radiation',
+                    description: 'Dangerous cosmic rays emanate from your core',
+                    price: 70,
+                    type: 'effect',
+                    preview: '#ffaa88',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_void_absorption',
+                    name: 'Void Absorption',
+                    description: 'Your swarm absorbs light and matter around it',
+                    price: 90,
+                    type: 'effect',
+                    preview: '#000000',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_stellar_eruption',
+                    name: 'Stellar Eruption',
+                    description: 'Solar flares burst from your cellular core',
+                    price: 100,
+                    type: 'effect',
+                    preview: '#ffcc00',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_quantum_teleport',
+                    name: 'Quantum Teleport',
+                    description: 'Your cells randomly teleport short distances',
+                    price: 120,
+                    type: 'effect',
+                    preview: '#8800ff',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_aurora_borealis',
+                    name: 'Aurora Borealis',
+                    description: 'Beautiful aurora lights dance around you',
+                    price: 75,
+                    type: 'effect',
+                    preview: '#00ff88',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_magnetic_field',
+                    name: 'Magnetic Field',
+                    description: 'Invisible magnetic forces affect nearby matter',
+                    price: 65,
+                    type: 'effect',
+                    preview: '#4488ff',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_phase_shift',
+                    name: 'Phase Shift',
+                    description: 'Your swarm phases in and out of reality',
+                    price: 110,
+                    type: 'effect',
+                    preview: '#ff88aa',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_nuclear_fusion',
+                    name: 'Nuclear Fusion',
+                    description: 'Fusion reactions create intense energy bursts',
+                    price: 95,
+                    type: 'effect',
+                    preview: '#ffff88',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_crystalline_resonance',
+                    name: 'Crystalline Resonance',
+                    description: 'Harmonic crystal vibrations create energy waves',
+                    price: 85,
+                    type: 'effect',
+                    preview: '#aaffcc',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'fx_dimensional_anchor',
+                    name: 'Dimensional Anchor',
+                    description: 'Anchor points to other dimensions around you',
+                    price: 150,
+                    type: 'effect',
+                    preview: '#884488',
+                    rarity: 'mythic',
+                    currency: 'shards'
                 }
             ],
             
             trails: [
+                // Free/Low Cost Items (5)
+                {
+                    id: 'trail_basic_line',
+                    name: 'Basic Line',
+                    description: 'Simple line trail following your movement',
+                    price: 0, // Free
+                    type: 'trail',
+                    preview: '#ffffff',
+                    rarity: 'common',
+                    currency: 'experience'
+                },
                 {
                     id: 'trail_stardust',
                     name: 'Stardust Trail',
@@ -123,7 +450,8 @@ class StoreSystem {
                     price: 200,
                     type: 'trail',
                     preview: '#ffffff',
-                    rarity: 'common'
+                    rarity: 'common',
+                    currency: 'experience'
                 },
                 {
                     id: 'trail_neon_spiral',
@@ -132,34 +460,180 @@ class StoreSystem {
                     price: 350,
                     type: 'trail',
                     preview: '#00ff88',
-                    rarity: 'common'
+                    rarity: 'common',
+                    currency: 'experience'
                 },
+                {
+                    id: 'trail_energy_wave',
+                    name: 'Energy Wave',
+                    description: 'Pulsing energy waves trail behind you',
+                    price: 500,
+                    type: 'trail',
+                    preview: '#0088ff',
+                    rarity: 'rare',
+                    currency: 'experience'
+                },
+                {
+                    id: 'trail_flame_path',
+                    name: 'Flame Path',
+                    description: 'Burning trail that slowly fades away',
+                    price: 650,
+                    type: 'trail',
+                    preview: '#ff4400',
+                    rarity: 'rare',
+                    currency: 'experience'
+                },
+                
+                // Shard-Required Items (15)
                 {
                     id: 'trail_temporal_echo',
                     name: 'Temporal Echo',
                     description: 'Echoes of your past positions fade slowly',
-                    price: 550,
+                    price: 35,
                     type: 'trail',
                     preview: '#ffaa00',
-                    rarity: 'rare'
+                    rarity: 'rare',
+                    currency: 'shards'
                 },
                 {
                     id: 'trail_void_stream',
                     name: 'Void Stream',
                     description: 'Dark energy streams behind your swarm',
-                    price: 700,
+                    price: 45,
                     type: 'trail',
                     preview: '#220022',
-                    rarity: 'epic'
+                    rarity: 'epic',
+                    currency: 'shards'
                 },
                 {
                     id: 'trail_rainbow_cascade',
                     name: 'Rainbow Cascade',
                     description: 'Cascading rainbow colors flow behind you',
-                    price: 900,
+                    price: 55,
                     type: 'trail',
                     preview: 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff)',
-                    rarity: 'legendary'
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_quantum_path',
+                    name: 'Quantum Path',
+                    description: 'Quantum probability trails show all possible paths',
+                    price: 60,
+                    type: 'trail',
+                    preview: '#8800ff',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_cosmic_dust',
+                    name: 'Cosmic Dust',
+                    description: 'Trail of cosmic particles from distant galaxies',
+                    price: 50,
+                    type: 'trail',
+                    preview: '#ffaa88',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_lightning_bolt',
+                    name: 'Lightning Bolt',
+                    description: 'Crackling lightning bolts follow your path',
+                    price: 40,
+                    type: 'trail',
+                    preview: '#ffff00',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_ice_crystals',
+                    name: 'Ice Crystals',
+                    description: 'Frozen ice crystals form and shatter in your wake',
+                    price: 42,
+                    type: 'trail',
+                    preview: '#aaffff',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_plasma_stream',
+                    name: 'Plasma Stream',
+                    description: 'Superheated plasma flows behind your movement',
+                    price: 65,
+                    type: 'trail',
+                    preview: '#ff0088',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_shadow_tendrils',
+                    name: 'Shadow Tendrils',
+                    description: 'Dark tentacles extend from your trail path',
+                    price: 48,
+                    type: 'trail',
+                    preview: '#440044',
+                    rarity: 'epic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_stellar_wind',
+                    name: 'Stellar Wind',
+                    description: 'Solar wind particles stream behind you',
+                    price: 70,
+                    type: 'trail',
+                    preview: '#ffcc44',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_gravitational_waves',
+                    name: 'Gravitational Waves',
+                    description: 'Visible distortions in space-time follow you',
+                    price: 80,
+                    type: 'trail',
+                    preview: '#4400ff',
+                    rarity: 'legendary',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_dimensional_tear',
+                    name: 'Dimensional Tear',
+                    description: 'Tears in reality slowly heal behind you',
+                    price: 90,
+                    type: 'trail',
+                    preview: '#884488',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_antimatter_stream',
+                    name: 'Antimatter Stream',
+                    description: 'Dangerous antimatter particles in your wake',
+                    price: 100,
+                    type: 'trail',
+                    preview: '#ff0000',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_celestial_ribbon',
+                    name: 'Celestial Ribbon',
+                    description: 'Divine ribbon of light blessed by cosmic forces',
+                    price: 120,
+                    type: 'trail',
+                    preview: '#ffdd88',
+                    rarity: 'mythic',
+                    currency: 'shards'
+                },
+                {
+                    id: 'trail_chaos_vortex',
+                    name: 'Chaos Vortex',
+                    description: 'Swirling vortex of pure chaotic energy',
+                    price: 150,
+                    type: 'trail',
+                    preview: 'linear-gradient(45deg, #ff0000, #00ff00, #0000ff, #ffff00)',
+                    rarity: 'mythic',
+                    currency: 'shards'
                 }
             ]
         };
@@ -270,7 +744,15 @@ class StoreSystem {
         const item = this.getItemById(itemId);
         if (!item || !this.playerProgression) return false;
         
-        return this.playerProgression.chronoShards >= item.price;
+        const currency = item.currency || 'shards'; // Default to shards for backward compatibility
+        
+        if (currency === 'experience') {
+            return this.playerProgression.experience >= item.price;
+        } else if (currency === 'shards') {
+            return this.playerProgression.chronoShards >= item.price;
+        }
+        
+        return false;
     }
 
     purchaseItem(itemId) {
@@ -296,8 +778,19 @@ class StoreSystem {
             return false;
         }
         
-        // Deduct cost
-        this.playerProgression.spendChronoShards(item.price);
+        const currency = item.currency || 'shards'; // Default to shards for backward compatibility
+        
+        // Deduct cost based on currency type
+        if (currency === 'experience') {
+            // Add a method to spend experience if it doesn't exist
+            if (typeof this.playerProgression.spendExperience === 'function') {
+                this.playerProgression.spendExperience(item.price);
+            } else {
+                this.playerProgression.experience -= item.price;
+            }
+        } else if (currency === 'shards') {
+            this.playerProgression.spendChronoShards(item.price);
+        }
         
         // Add to owned items
         this.ownedItems.add(itemId);
@@ -310,7 +803,8 @@ class StoreSystem {
             window.audioSystem.playUISound('click');
         }
         
-        console.log(`Purchased item: ${item.name} for ${item.price} shards`);
+        const currencyName = currency === 'experience' ? 'experience' : 'shards';
+        console.log(`Purchased item: ${item.name} for ${item.price} ${currencyName}`);
         return true;
     }
 

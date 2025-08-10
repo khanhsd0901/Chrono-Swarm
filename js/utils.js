@@ -659,6 +659,9 @@ class ChunkManager {
         const chunkEndX = worldX + GameConstants.CHUNK_SIZE;
         const chunkEndY = worldY + GameConstants.CHUNK_SIZE;
 
+        // Initialize arrays for exploration entities
+        chunkData.explorationEntities = [];
+
         // Generate chrono matter for this chunk
         const matterPerChunk = Math.floor(GameConstants.MAX_MATTER_COUNT / (GameConstants.CHUNKS_X * GameConstants.CHUNKS_Y));
         for (let i = 0; i < matterPerChunk; i++) {
@@ -688,6 +691,40 @@ class ChunkManager {
             }
         }
 
+        // Generate exploration entities (rare)
+        // Ancient Artifacts (very rare, ~5% chance per chunk)
+        if (Math.random() < 0.05) {
+            const artifactData = {
+                x: MathUtils.random(worldX + 150, chunkEndX - 150),
+                y: MathUtils.random(worldY + 150, chunkEndY - 150),
+                type: 'ancientArtifact'
+            };
+            chunkData.explorationEntities.push(artifactData);
+        }
+
+        // Wormhole entrances (very rare, ~2% chance per chunk)
+        if (Math.random() < 0.02) {
+            // Only create entrance, exit will be in a different chunk
+            const wormholeData = {
+                x: MathUtils.random(worldX + 200, chunkEndX - 200),
+                y: MathUtils.random(worldY + 200, chunkEndY - 200),
+                type: 'wormholeEntrance',
+                needsExit: true
+            };
+            chunkData.explorationEntities.push(wormholeData);
+        }
+
+        // Mystery zone spawn points (rare, ~8% chance per chunk)
+        if (Math.random() < 0.08) {
+            const mysteryZoneData = {
+                x: MathUtils.random(worldX + 100, chunkEndX - 100),
+                y: MathUtils.random(worldY + 100, chunkEndY - 100),
+                type: 'mysteryZoneSpawn',
+                spawnChance: 0.3 // 30% chance to actually spawn when loaded
+            };
+            chunkData.explorationEntities.push(mysteryZoneData);
+        }
+
         // Add chunk entities to game world
         this.addChunkEntitiesToGame(chunkData);
     }
@@ -713,6 +750,73 @@ class ChunkManager {
                 }
             });
         }
+        
+        // Add exploration entities
+        if (chunkData.explorationEntities) {
+            chunkData.explorationEntities.forEach(entityData => {
+                let entity = null;
+                
+                switch (entityData.type) {
+                    case 'ancientArtifact':
+                        if (typeof AncientArtifact !== 'undefined' && this.game.ancientArtifacts) {
+                            entity = new AncientArtifact(entityData.x, entityData.y);
+                            this.game.ancientArtifacts.push(entity);
+                        }
+                        break;
+                        
+                    case 'wormholeEntrance':
+                        if (typeof Wormhole !== 'undefined' && this.game.wormholes && entityData.needsExit) {
+                            // Find a suitable exit location in a different loaded chunk
+                            const exitLocation = this.findWormholeExitLocation(entityData);
+                            if (exitLocation) {
+                                const entrance = new Wormhole(entityData.x, entityData.y, exitLocation.x, exitLocation.y);
+                                const exit = new Wormhole(exitLocation.x, exitLocation.y, entityData.x, entityData.y);
+                                this.game.wormholes.push(entrance, exit);
+                                entity = entrance;
+                                entityData.needsExit = false;
+                                entityData.exitEntity = exit;
+                            }
+                        }
+                        break;
+                        
+                    case 'mysteryZoneSpawn':
+                        // Only spawn if random chance succeeds
+                        if (Math.random() < entityData.spawnChance && typeof MysteryZone !== 'undefined' && this.game.mysteryZones) {
+                            entity = new MysteryZone(entityData.x, entityData.y);
+                            this.game.mysteryZones.push(entity);
+                        }
+                        break;
+                }
+                
+                if (entity) {
+                    entityData.entity = entity;
+                }
+            });
+        }
+    }
+    
+    findWormholeExitLocation(entranceData) {
+        const loadedChunks = Array.from(this.loadedChunks.values());
+        const minDistance = 1500; // Minimum distance between entrance and exit
+        
+        for (let attempts = 0; attempts < 10; attempts++) {
+            const randomChunk = loadedChunks[Math.floor(Math.random() * loadedChunks.length)];
+            if (!randomChunk) continue;
+            
+            const exitX = MathUtils.random(randomChunk.worldX + 200, randomChunk.worldX + GameConstants.CHUNK_SIZE - 200);
+            const exitY = MathUtils.random(randomChunk.worldY + 200, randomChunk.worldY + GameConstants.CHUNK_SIZE - 200);
+            
+            const distance = Math.sqrt(
+                Math.pow(exitX - entranceData.x, 2) + 
+                Math.pow(exitY - entranceData.y, 2)
+            );
+            
+            if (distance >= minDistance) {
+                return { x: exitX, y: exitY };
+            }
+        }
+        
+        return null; // Failed to find suitable exit location
     }
 
     // Remove chunk entities from the main game arrays
@@ -733,6 +837,50 @@ class ChunkManager {
                     const index = this.game.temporalRifts.indexOf(riftData.entity);
                     if (index > -1) {
                         this.game.temporalRifts.splice(index, 1);
+                    }
+                }
+            });
+        }
+        
+        // Remove exploration entities
+        if (chunkData.explorationEntities) {
+            chunkData.explorationEntities.forEach(entityData => {
+                if (entityData.entity) {
+                    // Remove from appropriate game array
+                    switch (entityData.type) {
+                        case 'ancientArtifact':
+                            if (this.game.ancientArtifacts) {
+                                const index = this.game.ancientArtifacts.indexOf(entityData.entity);
+                                if (index > -1) {
+                                    this.game.ancientArtifacts.splice(index, 1);
+                                }
+                            }
+                            break;
+                            
+                        case 'wormholeEntrance':
+                            if (this.game.wormholes) {
+                                const index = this.game.wormholes.indexOf(entityData.entity);
+                                if (index > -1) {
+                                    this.game.wormholes.splice(index, 1);
+                                }
+                                // Also remove exit if it exists
+                                if (entityData.exitEntity) {
+                                    const exitIndex = this.game.wormholes.indexOf(entityData.exitEntity);
+                                    if (exitIndex > -1) {
+                                        this.game.wormholes.splice(exitIndex, 1);
+                                    }
+                                }
+                            }
+                            break;
+                            
+                        case 'mysteryZoneSpawn':
+                            if (this.game.mysteryZones) {
+                                const index = this.game.mysteryZones.indexOf(entityData.entity);
+                                if (index > -1) {
+                                    this.game.mysteryZones.splice(index, 1);
+                                }
+                            }
+                            break;
                     }
                 }
             });
