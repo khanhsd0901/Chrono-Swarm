@@ -245,53 +245,70 @@ body {
 }
 
 .leaderboard {
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid rgba(0, 255, 255, 0.3);
-    border-radius: 8px;
-    padding: 1rem;
-    min-width: 250px;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 30, 60, 0.95);
+    border: 2px solid #00ffff;
+    border-radius: 12px;
+    padding: 15px;
+    min-width: 200px;
+    box-shadow: 0 8px 32px rgba(0, 255, 255, 0.3);
     backdrop-filter: blur(10px);
+    z-index: 100;
+    display: block !important;
 }
 
 .leaderboard h3 {
-    font-family: 'Orbitron', monospace;
     color: #00ffff;
-    margin-bottom: 0.5rem;
+    margin: 0 0 10px 0;
+    font-size: 14px;
     text-align: center;
-    font-size: 0.9rem;
+    text-shadow: 0 0 10px #00ffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .leaderboard-list {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 5px;
+    min-height: 50px;
 }
 
 .leaderboard-entry {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.3rem 0.5rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-    font-size: 0.85rem;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    color: #ffffff;
 }
 
 .leaderboard-rank {
-    color: #ffff00;
-    font-weight: 700;
+    font-weight: bold;
+    color: #00ffff;
     min-width: 20px;
+    text-align: center;
 }
 
 .leaderboard-name {
     flex: 1;
-    margin: 0 0.5rem;
-    truncate: ellipsis;
+    text-align: left;
+    margin: 0 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .leaderboard-mass {
-    color: #00ffff;
-    font-family: 'Orbitron', monospace;
+    font-weight: bold;
+    color: #ffaa00;
+    text-align: right;
+    min-width: 50px;
 }
 
 .hud-bottom {

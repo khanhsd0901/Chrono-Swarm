@@ -348,7 +348,15 @@ class UISystem {
     }
 
     updateLeaderboard(players) {
-        if (!this.elements.leaderboardList) return;
+        if (!this.elements.leaderboardList) {
+            console.warn('Leaderboard list element not found');
+            return;
+        }
+        
+        if (!players || players.length === 0) {
+            console.warn('No players provided to updateLeaderboard');
+            return;
+        }
         
         this.elements.leaderboardList.innerHTML = '';
         
@@ -359,14 +367,23 @@ class UISystem {
                 playerElement.classList.add('current-player');
             }
             
+            // Ensure the player has required methods
+            const playerName = player.name || 'Unknown';
+            const playerMass = player.getTotalMass ? player.getTotalMass() : 0;
+            
             playerElement.innerHTML = `
-                <span class="rank">${index + 1}</span>
-                <span class="name">${player.name}</span>
-                <span class="mass">${GameUtils.formatNumber(player.getTotalMass())}</span>
+                <span class="leaderboard-rank">${index + 1}</span>
+                <span class="leaderboard-name">${playerName}</span>
+                <span class="leaderboard-mass">${GameUtils.formatNumber(playerMass)}</span>
             `;
             
             this.elements.leaderboardList.appendChild(playerElement);
         });
+        
+        // Make sure the leaderboard is visible
+        if (this.elements.leaderboardList.parentElement) {
+            this.elements.leaderboardList.parentElement.style.display = 'block';
+        }
     }
 
     updateMinimap(gameState) {
@@ -1006,6 +1023,28 @@ class UISystem {
 
     // Notification System
     showNotification(message, type = 'info', duration = 3000) {
+        // Handle object parameter (with title, message, type, duration properties)
+        if (typeof message === 'object' && message !== null) {
+            const notificationObj = message;
+            message = notificationObj.title || notificationObj.message || 'Notification';
+            type = notificationObj.type || type;
+            duration = notificationObj.duration || duration;
+            
+            // If both title and message exist, show title first then message
+            if (notificationObj.title && notificationObj.message) {
+                this.showNotification(notificationObj.title, type, Math.min(duration, 3000));
+                setTimeout(() => {
+                    this.showNotification(notificationObj.message, 'info', duration);
+                }, 1000);
+                return;
+            }
+        }
+        
+        // Ensure message is a string
+        if (typeof message !== 'string') {
+            message = String(message);
+        }
+        
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.textContent = message;
