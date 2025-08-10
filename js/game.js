@@ -1388,6 +1388,10 @@ class GameEngine {
         
         this.setupCanvas();
         this.setupInputHandlers();
+        
+        // Initialize chunk manager for dynamic loading
+        this.chunkManager = new ChunkManager(this);
+        
         this.initializeWorld();
         
         // Dynamic events system
@@ -1484,13 +1488,15 @@ class GameEngine {
     }
 
     initializeWorld() {
-        // Create temporal rifts
-        this.generateTemporalRifts();
+        // Initialize empty arrays - chunks will populate them
+        this.temporalRifts = [];
+        this.chronoMatter = [];
         
-        // Generate initial chrono matter
-        this.generateChronoMatter();
+        // Load initial chunks around player spawn point
+        const playerPos = this.player.getCenterPosition();
+        this.chunkManager.update(playerPos, Date.now());
         
-        // Create AI players
+        // Create AI players (they can spawn anywhere, chunks will load as needed)
         this.generateAIPlayers();
     }
 
@@ -1639,6 +1645,10 @@ class GameEngine {
         
         // Update camera
         this.camera.update(deltaTime);
+        
+        // Update chunk loading based on player position
+        const playerPos = this.player.getCenterPosition();
+        this.chunkManager.update(playerPos, Date.now());
         
         // Update abilities
         this.abilityManager.update(deltaTime);
@@ -1845,6 +1855,9 @@ class GameEngine {
     spawnChronoMatter(deltaTime) {
         const baseSpawnChance = GameConstants.MATTER_SPAWN_RATE * (deltaTime / 1000);
         
+        // Only spawn in loaded chunks to reduce unnecessary computation
+        const loadedChunks = this.chunkManager.getLoadedChunks();
+        
         // Zone-aware spawning with enhanced rates in special zones
         Object.entries(GameConstants.ZONES).forEach(([zoneKey, zone]) => {
             const zoneEffects = zone.effects;
@@ -1862,7 +1875,7 @@ class GameEngine {
                         MathUtils.random(zone.bounds.y, zone.bounds.y + zone.bounds.height)
                     );
                     attempts++;
-                } while (this.isPositionTooCloseToRifts(position, 50) && attempts < 20);
+                } while ((this.isPositionTooCloseToRifts(position, 50) || !this.chunkManager.isPositionLoaded(position.x, position.y)) && attempts < 20);
                 
                 if (attempts < 20) {
                     const matter = new ChronoMatter(position.x, position.y);
@@ -1883,30 +1896,32 @@ class GameEngine {
             }
         });
         
-        // Regular spawning for neutral areas
-        if (Math.random() < baseSpawnChance && this.chronoMatter.length < GameConstants.MAX_MATTER_COUNT) {
-            let attempts = 0;
-            let position;
-            
-            do {
-                position = new Vector2(
-                    MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_WIDTH - GameConstants.ARENA_PADDING),
-                    MathUtils.random(GameConstants.ARENA_PADDING, GameConstants.ARENA_HEIGHT - GameConstants.ARENA_PADDING)
-                );
-                attempts++;
-            } while (this.isPositionTooCloseToRifts(position, 50) && attempts < 20);
-            
-            // Only spawn in neutral areas (not in any zone)
-            const isInZone = Object.values(GameConstants.ZONES).some(zone => {
-                const bounds = zone.bounds;
-                return position.x >= bounds.x && position.x <= bounds.x + bounds.width &&
-                       position.y >= bounds.y && position.y <= bounds.y + bounds.height;
-            });
-            
-            if (attempts < 20 && !isInZone) {
-                this.chronoMatter.push(new ChronoMatter(position.x, position.y));
+        // Regular spawning for neutral areas in loaded chunks only
+        loadedChunks.forEach(chunk => {
+            if (Math.random() < baseSpawnChance && this.chronoMatter.length < GameConstants.MAX_MATTER_COUNT) {
+                let attempts = 0;
+                let position;
+                
+                do {
+                    position = new Vector2(
+                        MathUtils.random(chunk.worldX + 50, chunk.worldX + GameConstants.CHUNK_SIZE - 50),
+                        MathUtils.random(chunk.worldY + 50, chunk.worldY + GameConstants.CHUNK_SIZE - 50)
+                    );
+                    attempts++;
+                } while (this.isPositionTooCloseToRifts(position, 50) && attempts < 20);
+                
+                // Only spawn in neutral areas (not in any zone)
+                const isInZone = Object.values(GameConstants.ZONES).some(zone => {
+                    const bounds = zone.bounds;
+                    return position.x >= bounds.x && position.x <= bounds.x + bounds.width &&
+                           position.y >= bounds.y && position.y <= bounds.y + bounds.height;
+                });
+                
+                if (attempts < 20 && !isInZone) {
+                    this.chronoMatter.push(new ChronoMatter(position.x, position.y));
+                }
             }
-        }
+        });
     }
 
     render() {
@@ -2029,8 +2044,10 @@ class GameEngine {
 
     renderDebugInfo() {
         if (this.keys.has('KeyF')) { // Show debug info when F is held
+            const chunkInfo = this.chunkManager.getChunkInfo();
+            
             this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            this.ctx.fillRect(10, 10, 200, 120);
+            this.ctx.fillRect(10, 10, 200, 150);
             
             this.ctx.fillStyle = 'white';
             this.ctx.font = '12px monospace';
@@ -2040,9 +2057,11 @@ class GameEngine {
             this.ctx.fillText(`Particles: ${window.particleSystem ? window.particleSystem.getParticleCount() : 0}`, 20, 75);
             this.ctx.fillText(`Zoom: ${this.camera.zoom.toFixed(2)}`, 20, 90);
             this.ctx.fillText(`Pos: ${this.camera.position.x.toFixed(0)}, ${this.camera.position.y.toFixed(0)}`, 20, 105);
+            this.ctx.fillText(`Chunks: ${chunkInfo.loadedCount}`, 20, 120);
+            this.ctx.fillText(`Player Chunk: ${chunkInfo.playerChunk.x},${chunkInfo.playerChunk.y}`, 20, 135);
             
             if (this.player) {
-                this.ctx.fillText(`Mass: ${this.player.getTotalMass().toFixed(0)}`, 20, 120);
+                this.ctx.fillText(`Mass: ${this.player.getTotalMass().toFixed(0)}`, 20, 150);
             }
         }
     }

@@ -361,6 +361,14 @@ const GameConstants = {
     ARENA_HEIGHT: 12000, // Tripled from 4000
     ARENA_PADDING: 200,  // Increased padding
     
+    // Chunk system for dynamic loading
+    CHUNK_SIZE: 2000,        // Size of each chunk (2000x2000)
+    CHUNKS_X: 6,             // Number of chunks horizontally (12000/2000)
+    CHUNKS_Y: 6,             // Number of chunks vertically (12000/2000)
+    LOAD_RADIUS: 1,          // Load chunks within this radius of player chunk
+    UNLOAD_DISTANCE: 2,      // Unload chunks beyond this distance
+    CHUNK_UPDATE_INTERVAL: 1000, // How often to check chunk loading (ms)
+    
     // Zone definitions for the expanded map
     ZONES: {
         CENTER: {
@@ -509,7 +517,250 @@ const GameConstants = {
     }
 };
 
+// Chunk Manager for dynamic world loading
+class ChunkManager {
+    constructor(game) {
+        this.game = game;
+        this.loadedChunks = new Map(); // Map of "x,y" -> ChunkData
+        this.lastUpdateTime = 0;
+        this.playerChunk = { x: 0, y: 0 };
+    }
+
+    // Convert world coordinates to chunk coordinates
+    worldToChunk(worldX, worldY) {
+        return {
+            x: Math.floor(worldX / GameConstants.CHUNK_SIZE),
+            y: Math.floor(worldY / GameConstants.CHUNK_SIZE)
+        };
+    }
+
+    // Convert chunk coordinates to world coordinates (top-left corner)
+    chunkToWorld(chunkX, chunkY) {
+        return {
+            x: chunkX * GameConstants.CHUNK_SIZE,
+            y: chunkY * GameConstants.CHUNK_SIZE
+        };
+    }
+
+    // Get chunk key for Map storage
+    getChunkKey(chunkX, chunkY) {
+        return `${chunkX},${chunkY}`;
+    }
+
+    // Check if a chunk coordinate is valid
+    isValidChunk(chunkX, chunkY) {
+        return chunkX >= 0 && chunkX < GameConstants.CHUNKS_X && 
+               chunkY >= 0 && chunkY < GameConstants.CHUNKS_Y;
+    }
+
+    // Update which chunks should be loaded based on player position
+    update(playerPosition, currentTime) {
+        if (currentTime - this.lastUpdateTime < GameConstants.CHUNK_UPDATE_INTERVAL) {
+            return;
+        }
+        this.lastUpdateTime = currentTime;
+
+        // Calculate current player chunk
+        const newPlayerChunk = this.worldToChunk(playerPosition.x, playerPosition.y);
+        
+        // If player moved to a different chunk, update loading
+        if (newPlayerChunk.x !== this.playerChunk.x || newPlayerChunk.y !== this.playerChunk.y) {
+            this.playerChunk = newPlayerChunk;
+            this.updateChunkLoading();
+        }
+    }
+
+    // Load/unload chunks based on player position
+    updateChunkLoading() {
+        const { x: playerChunkX, y: playerChunkY } = this.playerChunk;
+
+        // Determine which chunks should be loaded
+        const shouldBeLoaded = new Set();
+        for (let dx = -GameConstants.LOAD_RADIUS; dx <= GameConstants.LOAD_RADIUS; dx++) {
+            for (let dy = -GameConstants.LOAD_RADIUS; dy <= GameConstants.LOAD_RADIUS; dy++) {
+                const chunkX = playerChunkX + dx;
+                const chunkY = playerChunkY + dy;
+                if (this.isValidChunk(chunkX, chunkY)) {
+                    shouldBeLoaded.add(this.getChunkKey(chunkX, chunkY));
+                }
+            }
+        }
+
+        // Load new chunks
+        for (const chunkKey of shouldBeLoaded) {
+            if (!this.loadedChunks.has(chunkKey)) {
+                const [chunkX, chunkY] = chunkKey.split(',').map(Number);
+                this.loadChunk(chunkX, chunkY);
+            }
+        }
+
+        // Unload distant chunks
+        for (const [chunkKey, chunkData] of this.loadedChunks) {
+            if (!shouldBeLoaded.has(chunkKey)) {
+                const [chunkX, chunkY] = chunkKey.split(',').map(Number);
+                const distance = Math.max(
+                    Math.abs(chunkX - playerChunkX),
+                    Math.abs(chunkY - playerChunkY)
+                );
+                if (distance > GameConstants.UNLOAD_DISTANCE) {
+                    this.unloadChunk(chunkX, chunkY);
+                }
+            }
+        }
+    }
+
+    // Load a specific chunk
+    loadChunk(chunkX, chunkY) {
+        const chunkKey = this.getChunkKey(chunkX, chunkY);
+        if (this.loadedChunks.has(chunkKey)) {
+            return;
+        }
+
+        console.log(`Loading chunk (${chunkX}, ${chunkY})`);
+
+        const worldPos = this.chunkToWorld(chunkX, chunkY);
+        const chunkData = {
+            x: chunkX,
+            y: chunkY,
+            worldX: worldPos.x,
+            worldY: worldPos.y,
+            chronoMatter: [],
+            temporalRifts: [],
+            loaded: true,
+            loadTime: Date.now()
+        };
+
+        // Generate chunk content
+        this.generateChunkContent(chunkData);
+        
+        this.loadedChunks.set(chunkKey, chunkData);
+    }
+
+    // Unload a specific chunk
+    unloadChunk(chunkX, chunkY) {
+        const chunkKey = this.getChunkKey(chunkX, chunkY);
+        const chunkData = this.loadedChunks.get(chunkKey);
+        
+        if (!chunkData) {
+            return;
+        }
+
+        console.log(`Unloading chunk (${chunkX}, ${chunkY})`);
+
+        // Remove chunk entities from game world
+        this.removeChunkEntitiesFromGame(chunkData);
+        
+        this.loadedChunks.delete(chunkKey);
+    }
+
+    // Generate content for a chunk (matter, rifts, etc.)
+    generateChunkContent(chunkData) {
+        const { worldX, worldY } = chunkData;
+        const chunkEndX = worldX + GameConstants.CHUNK_SIZE;
+        const chunkEndY = worldY + GameConstants.CHUNK_SIZE;
+
+        // Generate chrono matter for this chunk
+        const matterPerChunk = Math.floor(GameConstants.MAX_MATTER_COUNT / (GameConstants.CHUNKS_X * GameConstants.CHUNKS_Y));
+        for (let i = 0; i < matterPerChunk; i++) {
+            if (Math.random() < GameConstants.MATTER_SPAWN_RATE) {
+                // Store matter data, let game create actual objects
+                const matterData = {
+                    x: MathUtils.random(worldX + 50, chunkEndX - 50),
+                    y: MathUtils.random(worldY + 50, chunkEndY - 50),
+                    type: 'chronoMatter'
+                };
+                chunkData.chronoMatter.push(matterData);
+            }
+        }
+
+        // Generate temporal rifts for this chunk
+        const riftsPerChunk = Math.floor(GameConstants.RIFT_COUNT / (GameConstants.CHUNKS_X * GameConstants.CHUNKS_Y));
+        for (let i = 0; i < riftsPerChunk; i++) {
+            if (Math.random() < 0.8) { // Not every chunk needs rifts
+                // Store rift data, let game create actual objects
+                const riftData = {
+                    x: MathUtils.random(worldX + 100, chunkEndX - 100),
+                    y: MathUtils.random(worldY + 100, chunkEndY - 100),
+                    radius: MathUtils.random(GameConstants.RIFT_MIN_RADIUS, GameConstants.RIFT_MAX_RADIUS),
+                    type: 'temporalRift'
+                };
+                chunkData.temporalRifts.push(riftData);
+            }
+        }
+
+        // Add chunk entities to game world
+        this.addChunkEntitiesToGame(chunkData);
+    }
+
+    // Add chunk entities to the main game arrays
+    addChunkEntitiesToGame(chunkData) {
+        // Create actual entities from data and add to game
+        if (this.game.chronoMatter && chunkData.chronoMatter) {
+            chunkData.chronoMatter.forEach(matterData => {
+                if (matterData.type === 'chronoMatter' && typeof ChronoMatter !== 'undefined') {
+                    const matter = new ChronoMatter(matterData.x, matterData.y);
+                    this.game.chronoMatter.push(matter);
+                    matterData.entity = matter; // Store reference for removal
+                }
+            });
+        }
+        if (this.game.temporalRifts && chunkData.temporalRifts) {
+            chunkData.temporalRifts.forEach(riftData => {
+                if (riftData.type === 'temporalRift' && typeof TemporalRift !== 'undefined') {
+                    const rift = new TemporalRift(riftData.x, riftData.y, riftData.radius);
+                    this.game.temporalRifts.push(rift);
+                    riftData.entity = rift; // Store reference for removal
+                }
+            });
+        }
+    }
+
+    // Remove chunk entities from the main game arrays
+    removeChunkEntitiesFromGame(chunkData) {
+        if (this.game.chronoMatter && chunkData.chronoMatter) {
+            chunkData.chronoMatter.forEach(matterData => {
+                if (matterData.entity) {
+                    const index = this.game.chronoMatter.indexOf(matterData.entity);
+                    if (index > -1) {
+                        this.game.chronoMatter.splice(index, 1);
+                    }
+                }
+            });
+        }
+        if (this.game.temporalRifts && chunkData.temporalRifts) {
+            chunkData.temporalRifts.forEach(riftData => {
+                if (riftData.entity) {
+                    const index = this.game.temporalRifts.indexOf(riftData.entity);
+                    if (index > -1) {
+                        this.game.temporalRifts.splice(index, 1);
+                    }
+                }
+            });
+        }
+    }
+
+    // Get all loaded chunks
+    getLoadedChunks() {
+        return Array.from(this.loadedChunks.values());
+    }
+
+    // Check if a position is in a loaded chunk
+    isPositionLoaded(x, y) {
+        const chunk = this.worldToChunk(x, y);
+        return this.loadedChunks.has(this.getChunkKey(chunk.x, chunk.y));
+    }
+
+    // Get chunk info for debugging
+    getChunkInfo() {
+        return {
+            playerChunk: this.playerChunk,
+            loadedCount: this.loadedChunks.size,
+            loadedChunks: Array.from(this.loadedChunks.keys())
+        };
+    }
+}
+
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { Vector2, Color, MathUtils, GameUtils, GameConstants };
+    module.exports = { Vector2, Color, MathUtils, GameUtils, GameConstants, ChunkManager };
 }
